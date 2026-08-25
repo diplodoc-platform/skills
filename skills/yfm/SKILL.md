@@ -29,6 +29,7 @@ exist so that generated text builds on the first try.
 |---|---|
 | `references/tables.md` | tables: multiline `#|...|#`, cell merging, `::{align=...}` attributes |
 | `references/terms.md` | term popups `[*key]:` and definition lists `: ...` |
+| `references/extras.md` | tabs variants (radio/dropdown/accordion), media, video, sup/monospace/color, code, mermaid/LaTeX, what is NOT enabled by default |
 | `references/toc.md` | toc.yaml: structure, include modes, multiple tocs, link rules |
 | `references/lint.md` | YFM*/MD* rules, `.yfmlint` format, inline disabling |
 | `references/build-errors.md` | decoding build messages and how to fix them |
@@ -54,6 +55,9 @@ exist so that generated text builds on the first try.
 8. **Keep the base text GFM-compatible**; put YFM specifics in explicit blocks.
 9. One H1 per file, heading levels without gaps, no markup inside headings.
 10. Do not use raw HTML: `<details>` instead of `{% cut %}` does not work.
+11. **Do not use footnotes `[^1]`, task lists `- [ ]`, subscript `~x~`, or
+    underline `++x++`** - they are not enabled by default and render as
+    literal text (see `references/extras.md`).
 
 ## Condensed syntax
 
@@ -84,6 +88,9 @@ Collapsible content - for optional details.
 
 {% endlist %}
 ```
+
+Tabs have render variants with the same body syntax: `{% list tabs radio %}`,
+`{% list tabs dropdown %}`, `{% list tabs accordion %}` (`references/extras.md`).
 
 ### Includes and variables
 
@@ -117,7 +124,10 @@ Conditions: `{% if audience == "internal" %} ... {% endif %}`. An unclosed
 ```
 
 Size goes in attributes `{width=... height=...}`, not `=800x400`. A missing
-image path is a build error (`Asset not found`).
+image path is a build error (`Asset not found`). Store images in a
+`_`-prefixed directory (`_images/`) - other locations are dropped from the
+build. Video embeds, colored text, superscript, mermaid and LaTeX -
+`references/extras.md`.
 
 ### Tables
 
