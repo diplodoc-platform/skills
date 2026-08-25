@@ -13,6 +13,13 @@ that builds cleanly, configure projects, and decode build errors.
 
 ## Installation
 
+As a Claude Code plugin:
+
+```
+/plugin marketplace add diplodoc-platform/skills
+/plugin install diplodoc@diplodoc
+```
+
 With the [skills](https://github.com/vercel-labs/skills) CLI:
 
 ```bash
