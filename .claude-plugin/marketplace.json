@@ -1,0 +1,15 @@
+{
+  "$schema": "https://code.claude.com/schemas/marketplace.json",
+  "name": "diplodoc",
+  "owner": {
+    "name": "Diplodoc",
+    "url": "https://diplodoc.com"
+  },
+  "plugins": [
+    {
+      "name": "diplodoc",
+      "source": "./",
+      "description": "Skills for the Diplodoc documentation platform"
+    }
+  ]
+}

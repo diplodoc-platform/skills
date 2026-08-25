@@ -1,0 +1,8 @@
+{
+  "name": "diplodoc",
+  "description": "Skills for the Diplodoc documentation platform: YFM syntax, tables, terms, toc.yaml, linter configuration, and build error decoding",
+  "version": "1.0.0",
+  "author": {
+    "name": "Diplodoc team"
+  }
+}
