@@ -1,0 +1,58 @@
+{
+  "skill": "yfm",
+  "cases": [
+    {
+      "id": 1,
+      "name": "tabs-page",
+      "prompt": "In this Diplodoc project, create a page docs/install.md titled 'Installation' with installation instructions shown as tabs for three platforms: Linux, macOS and Windows (one shell command each, e.g. a package manager install line). Register the page in the table of contents. Follow the YFM skill.",
+      "build": "clean",
+      "checks": [
+        {"file": "docs/install.md", "pattern": "\\{% list tabs"},
+        {"file": "docs/install.md", "pattern": "\\{% endlist %\\}"},
+        {"file": "docs/toc.yaml", "pattern": "install\\.md"}
+      ]
+    },
+    {
+      "id": 2,
+      "name": "multiline-table",
+      "prompt": "In this Diplodoc project, add a section 'Support matrix' to docs/index.md with a table where the first column cell 'Linux' spans two rows (rows: x64 supported, arm64 supported) and a third row 'Windows' with a single cell spanning the remaining two columns saying 'not supported'. Use the table syntax from the YFM skill that supports merged cells.",
+      "build": "clean",
+      "checks": [
+        {"file": "docs/index.md", "pattern": "#\\|"},
+        {"file": "docs/index.md", "pattern": "\\|#"},
+        {"file": "docs/index.md", "pattern": "\\^"}
+      ]
+    },
+    {
+      "id": 3,
+      "name": "terms",
+      "prompt": "In docs/index.md of this Diplodoc project, mention the abbreviation 'TVM' twice in the text and make it a clickable term popup that explains it as 'Ticket Vending Machine, an internal auth protocol'. Use the term syntax from the YFM skill.",
+      "build": "clean",
+      "checks": [
+        {"file": "docs/index.md", "pattern": "\\]\\(\\*\\w+\\)"},
+        {"file": "docs/index.md", "pattern": "^\\[\\*\\w+\\]:"}
+      ]
+    },
+    {
+      "id": 4,
+      "name": "new-page-in-toc",
+      "prompt": "In this Diplodoc project, create a page docs/faq.md with three frequently asked questions (each question as a collapsible block) and link to it from docs/index.md. Make sure the project still builds.",
+      "build": "clean",
+      "checks": [
+        {"file": "docs/faq.md", "pattern": "\\{% cut "},
+        {"file": "docs/toc.yaml", "pattern": "faq\\.md"},
+        {"file": "docs/index.md", "pattern": "faq\\.md"}
+      ]
+    },
+    {
+      "id": 5,
+      "name": "no-unsupported-syntax",
+      "prompt": "In docs/index.md of this Diplodoc project, add a 'Sources' section: a paragraph of text with two footnote-style source references and a small to-do list of three items for the reader. Use only syntax that renders in Diplodoc by default, per the YFM skill.",
+      "build": "clean",
+      "checks": [
+        {"file": "docs/index.md", "pattern": "\\[\\^", "present": false},
+        {"file": "docs/index.md", "pattern": "- \\[[ x]\\]", "present": false}
+      ]
+    }
+  ]
+}
