@@ -9,12 +9,11 @@ description: >
   S3-compatible storage, init scaffolding, single-file rendering with yfm
   content, exit codes and CI usage, linter rules YFM001-YFM021 and MD* with
   .yfmlint overrides, and decoding of typical build errors. Use when running
-  or configuring docs builds, wiring docs into CI, debugging why a flag or
-  .yfm key does not apply, fixing a red build, or translating documentation.
-  Triggers on: "yfm build", "diplodoc cli", "build docs", "yfm command",
-  ".yfm config", "yfmlint", "unreachable-link", "docs build error",
-  "yfm translate", "yfm publish", "yfm init", "watch mode", "docs CI". For
-  YFM markup syntax use the yfm skill; for toc.yaml and project structure
+  or configuring docs builds, wiring docs into CI, fixing a red build, or
+  translating documentation. Triggers on: "yfm build", "diplodoc cli",
+  "yfm command", ".yfm config", "yfmlint", "unreachable-link",
+  "docs build error", "yfm translate", "yfm init", "watch mode", "docs CI".
+  For markup syntax use the yfm skill; for toc.yaml and project structure
   use the diplodoc-project skill.
 ---
 
