@@ -11,5 +11,6 @@
       "source": "./",
       "description": "Skills for the Diplodoc documentation platform"
     }
-  ]
+  ],
+  "description": "Official skills for the Diplodoc documentation platform"
 }
