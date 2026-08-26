@@ -18,8 +18,12 @@ As a Claude Code plugin:
 
 ```
 /plugin marketplace add diplodoc-platform/skills
-/plugin install diplodoc@diplodoc
+/plugin install diplodoc
 ```
+
+Skills become available under the `diplodoc:` namespace (`diplodoc:yfm`,
+`diplodoc:diplodoc-cli`). To pick up a new release later, run
+`/plugin update diplodoc`.
 
 With the [skills](https://github.com/vercel-labs/skills) CLI:
 
