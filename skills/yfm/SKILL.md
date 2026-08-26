@@ -1,86 +1,122 @@
 ---
 name: yfm
 description: >
-  YFM (Yandex Flavored Markdown) syntax for the Diplodoc documentation platform,
-  maintained by the Diplodoc team. Use it to generate or edit documentation that
-  builds cleanly and passes the linter. Covers: condensed syntax for writing
-  articles (notes, cuts, tabs, includes, variables, anchors), multiline tables
-  with cell merging, terms and definition lists, linter rules YFM001-YFM021 and
-  MD* with overrides via .yfmlint, toc.yaml mechanics (multiple tocs, include
-  modes, link rules), and decoding of typical yfm build errors. Use when writing
-  or editing Diplodoc documentation, generating articles from code, fixing yfm
-  build failures, or configuring toc.yaml / .yfmlint. Triggers on: "YFM",
-  "Diplodoc", "yfm build", "toc.yaml", "yfmlint", "write docs", "generate
-  documentation", "docs build error", "unreachable-link", "multiline table",
-  "term", "note", "cut", "include". Do NOT use for plain GitHub Flavored
-  Markdown without the Diplodoc toolchain.
+  YFM (Yandex Flavored Markdown) syntax, maintained by the Diplodoc team. Pure
+  markup reference for generating or editing YFM content in any host product
+  (Diplodoc docs, and other services embedding the YFM transformer). Covers:
+  text and line-break semantics, notes, cuts, tabs and their variants, includes,
+  variables and conditions, links and anchors, images and video, code fences,
+  multiline tables with cell merging, terms (tooltips) and definition lists,
+  mermaid diagrams, inline extras, and what is NOT enabled by default. Use when
+  writing or converting YFM markup. Triggers on: "YFM", "Yandex Flavored
+  Markdown", "Diplodoc markup", "note", "cut", "tabs", "multiline table",
+  "term", "include", "mermaid". Do NOT use for: plain GitHub Flavored Markdown;
+  project structure (toc.yaml, presets - the diplodoc-project skill); running
+  builds, linter setup or build errors (the diplodoc-cli skill).
 ---
 
-# YFM: Diplodoc documentation syntax
+# YFM: Yandex Flavored Markdown
 
-Maintained by the Diplodoc team. YFM = CommonMark + extensions processed by the
-`yfm` builder (@diplodoc/cli). Part of the validation happens at build time, not
-in the renderer: text can "look fine" and still fail the build. The rules below
-exist so that generated text builds on the first try.
+Pure syntax reference. YFM = CommonMark + extensions implemented by the YFM
+transformer (@diplodoc/transform). It is embedded in several products, so the
+active extension set depends on the host; this file marks the defaults of the
+Diplodoc toolchain. Project structure (toc.yaml, presets, frontmatter keys) is
+the **diplodoc-project** skill; builds, linter and error decoding are the
+**diplodoc-cli** skill.
 
-## References (read when working on the topic)
+## References
 
 | File | When to read |
 |---|---|
-| `references/tables.md` | tables: multiline `#|...|#`, cell merging, `::{align=...}` attributes |
-| `references/terms.md` | term popups `[*key]:` and definition lists `: ...` |
-| `references/extras.md` | tabs variants (radio/dropdown/accordion), media, video, sup/monospace/color, code, mermaid/LaTeX, what is NOT enabled by default |
-| `references/toc.md` | toc.yaml: structure, include modes, multiple tocs, link rules |
-| `references/lint.md` | YFM*/MD* rules, `.yfmlint` format, inline disabling |
-| `references/build-errors.md` | decoding build messages and how to fix them |
+| `references/tables.md` | tables: multiline `#|...|#`, cell merging, attribute lines `|:{...}` / `||:{...}` / `::{...}`, wide-content, sticky-header |
+| `references/terms.md` | term tooltips `[*key]:` and definition lists `: ...` |
+| `references/extras.md` | tabs variants (radio/dropdown/accordion), media, video, code fence options, inline extras, what is NOT enabled by default |
+| `references/diagrams.md` | mermaid: type catalog, node/edge syntax, Diplodoc-specific caveats |
 
-## Key generation rules (common AI-text pitfalls)
+## Text semantics you must know before generating
 
-1. **A quote is `>` (blockquote), not `{% note %}`.** Notes are only for
-   genuinely important warnings or tips - at most ~1 per 15 lines.
-2. **No meta-text about the document itself**: no "This document describes...",
-   "This article covers...". Get to the point.
-3. **Do not invent names**: take table names, services, fields, and paths in
-   examples from the real context of the task. A plausible invented name is the
-   worst documentation bug.
-4. **No emoji or characters outside the BMP** - the linter flags them as
-   YFM021 (garbage CJK characters from generation are caught the same way).
-5. **Blank lines around every YFM block** and inside it (after the opening tag,
-   before the closing one) - otherwise the block does not render.
-6. **Every block is closed**: `{% note %}...{% endnote %}`, `{% cut %}...{% endcut %}`,
-   `{% list tabs %}...{% endlist %}`, `#|...|#`. An unclosed table is a build
-   error (YFM004).
-7. **Links to other pages are relative, with the `.md` extension**, and only to
-   files present in toc.yaml - otherwise YFM003 unreachable-link (error).
-8. **Keep the base text GFM-compatible**; put YFM specifics in explicit blocks.
-9. One H1 per file, heading levels without gaps, no markup inside headings.
-10. Do not use raw HTML: `<details>` instead of `{% cut %}` does not work.
-11. **Do not use footnotes `[^1]`, task lists `- [ ]`, subscript `~x~`, or
-    underline `++x++`** - they are not enabled by default and render as
-    literal text (see `references/extras.md`).
+1. **A single newline renders as a line break** (`breaks: true` is the
+   default). Never hard-wrap paragraphs at N columns - write each paragraph as
+   one source line, or the output comes out ragged.
+2. **Bare URLs are NOT autolinked** (`linkify: false` by default). Use
+   `<https://example.com>` or a regular `[text](url)` link.
+3. **Blank lines around every `{% ... %}` block** and inside it (after the
+   opening tag, before the closing one) - otherwise the block does not render.
+4. Comments that do not reach the output: `[//]: # (comment text)` - preceded
+   by a blank line. HTML comments `<!-- -->` may leak depending on the host.
+5. Raw HTML: escaped or sanitized depending on host settings; even when
+   allowed, `<script>` and `on*` handlers are stripped. Do not rely on HTML -
+   `<details>` is not a substitute for `{% cut %}`.
 
-## Condensed syntax
+## Rules for generated text (common AI pitfalls)
 
-### Blocks
+1. **A quote is `>` (blockquote), not `{% note %}`.** Notes are for genuinely
+   important warnings or tips - at most ~1 per 15 lines, never two in a row.
+   Pick the type by meaning: `info` = context, `tip` = recommendation,
+   `warning` = limitation or caveat, `alert` = critical, destructive, blocking.
+2. **No meta-text about the document itself** ("This document describes...").
+3. **Do not invent names** - tables, services, fields, paths in examples come
+   from the real context. A plausible invented name is the worst bug.
+4. **No emoji or characters outside the Basic Multilingual Plane** - they can
+   break layout and are flagged by the Diplodoc linter (YFM021).
+5. **Do not use syntax that is off by default**: footnotes `[^1]`, task lists
+   `- [ ]`, subscript `~x~`, underline `++x++`, highlight `==x==` - they render
+   as literal text unless the host enables the plugin (`references/extras.md`).
+6. **Close every block**: `{% note %}...{% endnote %}`, `{% cut %}...{% endcut %}`,
+   `{% list tabs %}...{% endlist %}`, `#|...|#`, `{% if %}...{% endif %}`.
+7. Keep the base text GFM-compatible; put YFM specifics in explicit blocks.
+
+## Headings, anchors, links
+
+```markdown
+## Heading {#custom-anchor}
+
+[text](../folder/file.md)       # relative path WITH the .md extension
+[text](file.md#anchor)
+[{#T}](./other.md)              # link text taken from the target's heading
+[text](url){target=_blank}      # explicit tab targeting
+<https://example.com>           # autolink
+[text][ref]  ...  [ref]: https://example.com "Title"   # reference-style
+```
+
+- One H1 per file - it is the page title: it gets no anchor and never appears
+  in the in-page mini-TOC. The mini-TOC shows **H2 and H3 only**, and
+  disappears entirely if heading levels skip or go out of order.
+- Auto-anchors are generated by **transliterating** the heading to Latin
+  (`## Привет` -> `#privet`). When linking to headings by hand, prefer
+  explicit `{#anchors}` - transliterated slugs are easy to guess wrong.
+- No markup inside headings.
+
+## Lists
+
+- Numbered: `1.` (or `1)`) - numbering is recomputed at build, repeating `1.`
+  is idiomatic. Bulleted: `*`, `-` or `+`.
+- Nested level: indent by 2-5 spaces, **4 recommended** (works for both list
+  types). 2-3 spaces under a numbered item will not create a level.
+- Definition lists - `references/terms.md`.
+
+## Blocks
 
 ```markdown
 {% note info "Custom title" %}
 
-Types: info, tip, warning, alert. Title is optional, "" removes it.
+Types: info, tip, warning, alert. Title optional, "" removes it.
 
 {% endnote %}
 
-{% cut "Informative title" %}
+{% cut "Informative title" %}{#cut-anchor name=cut-group}
 
-Collapsible content - for optional details.
+Collapsible content. The `{#anchor name=group}` part is optional and goes
+AFTER the closing %}; a link to the anchor auto-expands the cut.
 
 {% endcut %}
 
 {% list tabs group=os %}
 
-- Tab name
+- Tab name {selected}
 
-  Tab content indented by 2 spaces. group synchronizes tab blocks.
+  Tab content indented by 2 spaces. group syncs same-group blocks across
+  pages; {selected} makes the tab active by default.
 
 - Second tab
 
@@ -89,114 +125,66 @@ Collapsible content - for optional details.
 {% endlist %}
 ```
 
-Tabs have render variants with the same body syntax: `{% list tabs radio %}`,
-`{% list tabs dropdown %}`, `{% list tabs accordion %}` (`references/extras.md`).
+Variants with the same body syntax: `{% list tabs radio %}`, `dropdown`,
+`accordion` (`references/extras.md`). Blocks nest (note inside cut, table
+inside note, note inside a tab) - nested `{% %}` tags follow the same 2-space
+indent as the tab body. Cuts do not take `{selected}`.
 
-### Includes and variables
-
-```markdown
-{% include [text](path/to/file.md) %}
-{% include notitle [text](path/to/file.md#anchor) %}
-```
-
-The path is relative to the current file. Circular includes and self-includes
-are build errors.
-
-Variables from `presets.yaml` (the `default:` section): `{{ service-name }}`.
-Conditions: `{% if audience == "internal" %} ... {% endif %}`. An unclosed
-`{% if %}`/`{% for %}` is a build error.
-
-### Links and anchors
+## Includes and variables
 
 ```markdown
-## Heading {#custom-anchor}
-
-[text](../folder/file.md)      # relative path WITH the .md extension
-[text](file.md#anchor)
-[{#T}](./other.md)             # link text is taken from the target's heading
+{% include [text](_includes/file.md) %}
+{% include notitle [text](_includes/file.md#anchor) %}
 ```
 
-### Images and files
+- Path is relative to the current file. Including by `#anchor` pulls that
+  section **with all its subsections**.
+- In Diplodoc builds, include files live in a `_`-prefixed directory
+  (`_includes/`) - other locations are dropped from the build.
+
+Variables and conditions (Liquid-style; availability and values are
+host/build-defined):
+
+```markdown
+{{ user.name }} and filters: {{ user.name | capitalize }}, {{ list | length }}
+
+{% if audience == "internal" and version >= 12 %} ... {% elsif OS == "iOS" %}
+... {% else %} ... {% endif %}
+```
+
+Operators: `==, !=, <, >, <=, >=`, `and`, `or`, `contains`. Inline `{% if %}`
+inside a sentence works. To show literal `{{ ... }}`, prefix with `not_var`:
+`not_var{{ var }}` (works only for fragments of `.-|(),_`, letters, digits,
+spaces).
+
+## Images and media
 
 ```markdown
 ![Alt text](_images/arch.png "Tooltip"){width=800}
-{% file src="path/to/doc.pdf" name="Document.pdf" %}
 ```
 
-Size goes in attributes `{width=... height=...}`, not `=800x400`. A missing
-image path is a build error (`Asset not found`). Store images in a
-`_`-prefixed directory (`_images/`) - other locations are dropped from the
-build. Video embeds, colored text, superscript, mermaid and LaTeX -
-`references/extras.md`.
+- Size via attributes (`{width=... height=...}`), never `=800x400`. Set only
+  one of width/height to keep the aspect ratio.
+- In Diplodoc builds images live in a `_`-prefixed directory (`_images/`).
+- Clickable image: image markup inside link text. Videos, galleries, SVG
+  inlining, file attachments - `references/extras.md`.
 
-### Tables
+## Code
 
-Simple data - GFM (the separator row is mandatory, same number of `|` in every
-row). Block content or merged cells - multiline:
+- Inline: `` `fragment` `` - keep under 100 characters, inline code does not
+  wrap.
+- Fenced block with a language for highlighting; extra fence options:
+  `showLineNumbers`, `wrap` (soft-wrap), `prompt="$"` (prompt excluded from
+  copy) - see `references/extras.md`.
 
-```markdown
-#|
-|| **Header 1** | **Header 2** ||
-|| Cell | Cell spanning 2 rows ||
-|| Cell | ^ ||
-|#
-```
+## Tables and terms
 
-`>` - join with the cell to the left, `^` - with the cell above. Details and
-attributes - `references/tables.md`.
+Simple data - GFM tables; block content or merged cells - multiline
+`#| ... |#` (`references/tables.md`). Term tooltips `[термин](*key)` +
+`[*key]: definition` and definition lists - `references/terms.md`.
 
-### Terms and definition lists
+## Validating the result
 
-```markdown
-Usage of a [term](*termkey) in text.
-
-[*termkey]: Definition (at the very end of the page, ASCII key).
-```
-
-A definition list is `Term`, then a `:   Definition` line. Details and gotchas -
-`references/terms.md`.
-
-### Frontmatter
-
-```yaml
----
-title: Page title
-description: Description for search engines
----
-```
-
-A duplicated key in frontmatter is a build error (YFM017).
-
-## Project structure
-
-```
-docs/
-├── .yfm            # build config (allowHtml, strict, lint, template, ...)
-├── .yfmlint        # linter rule levels (references/lint.md)
-├── toc.yaml        # table of contents; files not in toc are not built
-├── presets.yaml    # variables
-├── index.yaml      # section leading page
-└── **/*.md
-```
-
-toc.yaml: `items` with `name`/`href`/nesting, `hidden`, `when`, includes in
-three modes (the default `root_merge` physically copies files - use
-`mode: link` for navigation-only composition), multiple tocs with "the nearest
-toc wins". Details - `references/toc.md`.
-
-## Verifying the result
-
-Build locally: `npx -p @diplodoc/cli yfm -i docs -o /tmp/docs-out` (or `yfm` if
-installed). `-s/--strict` turns warnings into errors. Any `ERR` line fails the
-build; message decoding - `references/build-errors.md`.
-
-Pre-submit checklist:
-
-- [ ] one H1, consecutive heading levels
-- [ ] blank lines around all `{% ... %}` blocks, every block closed
-- [ ] tables: GFM with a separator row / multiline closed with `|#`
-- [ ] links are relative, with `.md`, targets exist and are in toc.yaml
-- [ ] new files added to toc.yaml
-- [ ] terms defined at the end of the file, ASCII keys
-- [ ] no emoji/garbage characters, no meta-text, no invented names
-- [ ] notes only where something truly is a warning; quotes via `>`
+If the target is a Diplodoc docs project, build it with the `yfm` CLI - it
+catches unclosed blocks, broken links and banned characters; see the
+**diplodoc-cli** skill. For other hosts, preview in the host product.

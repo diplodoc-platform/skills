@@ -37,7 +37,8 @@ For every case the runner:
 1. creates a scratch dir with a minimal Diplodoc project (`docs/toc.yaml`,
    `docs/index.md`) or a case fixture (`evals/<skill>/fixtures/<id>/`);
 2. installs the skill under test into `.claude/skills/<skill>/` of the scratch
-   dir, so the agent discovers it naturally;
+   dir, so the agent discovers it naturally (a case set may declare
+   `"skills": [...]` to install several, e.g. yfm + diplodoc-project);
 3. runs the agent with the case prompt (cwd = scratch dir);
 4. validates:
    - `build: clean` - `yfm build -s` must pass with zero ERR/WARN;

@@ -7,12 +7,15 @@ description: >
   size limits, reports), watch mode, the .yfm config file and how CLI flags map
   to it, translate with providers and XLIFF extract/compose, publish to
   S3-compatible storage, init scaffolding, single-file rendering with yfm
-  content, exit codes and CI usage. Use when running or configuring docs
-  builds, wiring docs into CI, debugging why a flag or .yfm key does not apply,
-  or translating documentation. Triggers on: "yfm build", "diplodoc cli",
-  "build docs", "yfm command", ".yfm config", "yfm translate", "yfm publish",
-  "yfm init", "watch mode", "docs CI". For YFM markup syntax, linter rules and
-  build error decoding use the yfm skill instead.
+  content, exit codes and CI usage, linter rules YFM001-YFM021 and MD* with
+  .yfmlint overrides, and decoding of typical build errors. Use when running
+  or configuring docs builds, wiring docs into CI, debugging why a flag or
+  .yfm key does not apply, fixing a red build, or translating documentation.
+  Triggers on: "yfm build", "diplodoc cli", "build docs", "yfm command",
+  ".yfm config", "yfmlint", "unreachable-link", "docs build error",
+  "yfm translate", "yfm publish", "yfm init", "watch mode", "docs CI". For
+  YFM markup syntax use the yfm skill; for toc.yaml and project structure
+  use the diplodoc-project skill.
 ---
 
 # Diplodoc CLI (yfm)
@@ -21,9 +24,10 @@ description: >
 `docs` (identical). Requires Node 22+. Run without installing:
 `npx -p @diplodoc/cli yfm ...`.
 
-Verified against @diplodoc/cli v5.55 source. For markup syntax, `.yfmlint`
-rules and decoding build errors, use the **yfm** skill; this one is about
-running and configuring the CLI itself.
+Verified against @diplodoc/cli v5.55 source. This skill owns everything about
+running the toolchain: commands, config, the linter and build error decoding.
+Markup syntax is the **yfm** skill; toc.yaml and project structure is the
+**diplodoc-project** skill.
 
 ## References
 
@@ -31,6 +35,8 @@ running and configuring the CLI itself.
 |---|---|
 | `references/build.md` | full `yfm build` flag reference grouped by purpose, with defaults |
 | `references/config.md` | the `.yfm` file: key naming, scopes, CLI-vs-config precedence and its traps |
+| `references/lint.md` | linter rules YFM001-YFM021 and MD*, the `.yfmlint` file, inline disabling |
+| `references/build-errors.md` | decoding build messages and how to fix them |
 | `references/translate.md` | `yfm translate`: providers, extract/compose/seed, caching |
 
 ## Commands

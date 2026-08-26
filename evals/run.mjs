@@ -22,10 +22,12 @@ const onlyCase = args.includes('--case') ? Number(args[args.indexOf('--case') + 
 const keep = args.includes('--keep');
 
 const spec = JSON.parse(readFileSync(join(ROOT, 'evals', skill, 'cases.json'), 'utf8'));
-const skillDir = join(ROOT, 'skills', skill);
-if (!existsSync(skillDir)) {
-    console.error(`no such skill: ${skillDir}`);
-    process.exit(2);
+const skillNames = spec.skills || [spec.skill];
+for (const name of skillNames) {
+    if (!existsSync(join(ROOT, 'skills', name))) {
+        console.error(`no such skill: skills/${name}`);
+        process.exit(2);
+    }
 }
 
 const AGENT_CMD = process.env.EVAL_AGENT_CMD || `claude -p {prompt} --permission-mode acceptEdits`;
@@ -61,7 +63,9 @@ for (const c of cases) {
         } else {
             scaffold(dir);
         }
-        cpSync(skillDir, join(dir, '.claude', 'skills', skill), {recursive: true});
+        for (const name of skillNames) {
+            cpSync(join(ROOT, 'skills', name), join(dir, '.claude', 'skills', name), {recursive: true});
+        }
 
         const cmd = AGENT_CMD.replace('{prompt}', JSON.stringify(c.prompt));
         execSync(cmd, {cwd: dir, stdio: ['ignore', 'pipe', 'pipe'], timeout: 600_000});

@@ -69,32 +69,42 @@ In-depth interviews:
 |#
 ```
 
-### Table and cell attributes
+### Attributes: table, row, cell
 
-Cell attributes go right after `|` (or `||` for the first cell) **with no
-space**; the marker is `::{...}`:
+Three levels, all marked with `:{...}`:
 
 ```markdown
 #|
-|| Name | Number ||
-||::{align="center"} Centered |::{align="top-right"} Top right ||
+|:{header-rows="1"}
+||:{class="header"} **Header 1** | **Header 2** ||
+|| Text |::{align="top-right"} Top right ||
 |#
 ```
 
-- `align` - valid values: `top-left`, `top-center`, `top-right`, `center`,
-  `bottom-left`, `bottom-right`.
-- `bg` - cell background color.
+- **Table**: `|:{...}` on its own line between `#|` and the first `||` row
+  (e.g. `header-rows="2"` for the number of header rows).
+- **Row**: `||:{...}` immediately after the opening `||`, no space.
+- **Cell**: `::{...}` at the start of the cell content, no space after `|`.
+- `align` values: `top-left`, `top-center`, `top-right`, `center`,
+  `bottom-left`, `bottom-right` (the official docs also mention
+  `bottom-center`, but the current transformer warns on it).
+- `bg` - cell background color; cell sizing via `{style="width: 400px"}`
+  inside the cell.
 - The old way, `{.cell-align-center}` at the end of cell content, is
   deprecated and produces a build warning; use `::{align="..."}`.
 
-A whole-table attribute goes after the opening `#|`, e.g. the number of header
-rows:
+### Wide tables and sticky headers
 
-```markdown
-#| {header-rows="2"}
-...
-|#
-```
+- GFM: on its own line after a blank line following the table -
+  `{wide-content title="Table name"}` (click-to-expand full width) or
+  `{sticky-header}` (header pinned on scroll).
+- Multiline: `{wide-content}` is appended to the closing fence
+  (`|# {wide-content}`); `{sticky-header}` goes on the next line after `|#`.
+
+### Nested tables
+
+A cell of a multiline table can contain another `#| ... |#` table - regular
+block content with blank lines around it.
 
 ## Typical breakage
 

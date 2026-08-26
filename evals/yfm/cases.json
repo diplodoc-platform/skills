@@ -1,5 +1,6 @@
 {
   "skill": "yfm",
+  "skills": ["yfm", "diplodoc-project"],
   "cases": [
     {
       "id": 1,
