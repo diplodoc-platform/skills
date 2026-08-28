@@ -188,3 +188,16 @@ Simple data - GFM tables; block content or merged cells - multiline
 If the target is a Diplodoc docs project, build it with the `yfm` CLI - it
 catches unclosed blocks, broken links and banned characters; see the
 **diplodoc-cli** skill. For other hosts, preview in the host product.
+
+## Beyond this skill
+
+For syntax not covered here, read the official docs. Any docs page is
+fetchable as raw markdown by appending `.md` to its URL:
+
+- Syntax section: https://diplodoc.com/docs/en/syntax/ (`ru` also available)
+- Example raw fetch: https://diplodoc.com/docs/en/syntax/tables/multiline.md
+
+For transformer behavior the source of truth is the code:
+https://github.com/diplodoc-platform/transform. Where the docs and this skill
+disagree, this skill's claims are code-verified - re-check against the source
+before trusting either.

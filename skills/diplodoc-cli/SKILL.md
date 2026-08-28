@@ -117,3 +117,16 @@ Credentials are **rejected if placed in the config file** - pass them as flags
 `-f md` a self-contained markdown with frontmatter; `--raw` drops the
 `<<<<<< YFM CONTENT START/END >>>>>>` markers; `-w` watches the file and its
 includes chain.
+
+## Beyond this skill
+
+For flags and behaviors not covered here, read the official docs. Any docs
+page is fetchable as raw markdown by appending `.md` to its URL:
+
+- Tools section: https://diplodoc.com/docs/en/tools/docs/build.md
+- Settings reference: https://diplodoc.com/docs/en/settings.md
+
+The final arbiter for CLI behavior is the source:
+https://github.com/diplodoc-platform/cli (note: the official lint page has
+been observed to lag behind the code - this skill's lint facts are verified
+against @diplodoc/yfmlint sources).
