@@ -110,3 +110,15 @@ extensions:
 
 The checkbox plugin ships with the transformer (config-only enable); most
 others are external npm packages.
+
+## Beyond this skill
+
+For project features not covered here, read the official docs. Any docs page
+is fetchable as raw markdown by appending `.md` to its URL:
+
+- Project section: https://diplodoc.com/docs/en/project/toc (toc, includes,
+  navigation, redirects, metadata, presets - sibling pages)
+- Settings reference: https://diplodoc.com/docs/en/settings.md
+
+Build behavior is defined by the CLI source:
+https://github.com/diplodoc-platform/cli.
