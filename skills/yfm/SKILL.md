@@ -62,6 +62,11 @@ the **diplodoc-project** skill; builds, linter and error decoding are the
 5. **Do not use syntax that is off by default**: footnotes `[^1]`, task lists
    `- [ ]`, subscript `~x~`, underline `++x++`, highlight `==x==` - they render
    as literal text unless the host enables the plugin (`references/extras.md`).
+   This holds even when the request names such syntax directly ("add footnotes",
+   "make a checklist"): say that it is off by default and would render
+   literally, then either write the same thing in supported markup or show how
+   to enable the plugin in `.yfm` (`extensions: mdit-plugins`, the
+   diplodoc-project skill). Never emit it silently.
 6. **Close every block**: `{% note %}...{% endnote %}`, `{% cut %}...{% endcut %}`,
    `{% list tabs %}...{% endlist %}`, `#|...|#`, `{% if %}...{% endif %}`.
 7. Keep the base text GFM-compatible; put YFM specifics in explicit blocks.
