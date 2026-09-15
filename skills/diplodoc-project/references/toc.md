@@ -127,7 +127,7 @@ docs/
 
 - A relative path **with the `.md` extension**: `[text](../folder/file.md)`;
   anchors - `[text](file.md#anchor)`.
-- `[{#T}](./index.md)` - the link text is substituted from the target page's
+- `[{#T}](./pages.md)` - the link text is substituted from the target page's
   heading.
 - Relative paths do not work in raw HTML - only absolute paths from the docs
   root.
