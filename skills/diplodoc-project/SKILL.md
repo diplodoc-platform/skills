@@ -1,17 +1,21 @@
 ---
 name: diplodoc-project
 description: >
-  Structure and configuration of a Diplodoc documentation project, maintained
-  by the Diplodoc team. Covers: project layout, toc.yaml mechanics (nesting,
-  hidden/when/expanded, include modes, multiple tocs, link rules), landing
-  pages (index.yaml), page frontmatter keys, variable presets (presets.yaml),
-  multi-language projects, redirects, which file types survive the build, page
-  constructor, enabling extra markdown-it plugins. Use when creating or
-  reorganizing a docs project, editing toc.yaml or index.yaml, setting up
-  variables, languages or redirects. Triggers on: "toc.yaml", "index.yaml",
-  "presets.yaml", "docs project structure", "landing page", "frontmatter",
-  "redirects", "multilingual docs". For markup syntax use the yfm skill; for
-  build commands, linter and error decoding use the diplodoc-cli skill.
+  Structure and configuration of a Diplodoc documentation project,
+  maintained by the Diplodoc team. Covers: project layout, toc.yaml
+  mechanics (nesting, hidden/when/expanded, include modes, multiple tocs,
+  link rules), landing pages (index.yaml), page frontmatter keys, variable
+  presets (presets.yaml), multi-language projects, redirects. Use when
+  creating or reorganizing a docs project, editing toc.yaml or index.yaml,
+  setting up variables, languages or redirects, and equally when the
+  question is only about how one of these files works or where a setting
+  belongs - answer from this skill, not from memory: toc.yaml keys and
+  preset resolution are Diplodoc-specific and easy to misremember. Read it
+  before answering, even when the working directory holds no docs project.
+  Triggers on: "toc.yaml", "index.yaml", "presets.yaml", "frontmatter",
+  "redirects", "оглавление документации", "структура проекта документации".
+  For markup syntax use the yfm skill; for build commands and linter use the
+  diplodoc-cli skill.
 ---
 
 # Diplodoc project structure

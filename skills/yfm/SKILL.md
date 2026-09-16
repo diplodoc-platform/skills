@@ -1,18 +1,20 @@
 ---
 name: yfm
 description: >
-  YFM (Yandex Flavored Markdown) syntax, maintained by the Diplodoc team. Pure
-  markup reference for generating or editing YFM content in any host product
-  (Diplodoc docs, and other services embedding the YFM transformer). Covers:
-  text and line-break semantics, notes, cuts, tabs and their variants, includes,
-  variables and conditions, links and anchors, images and video, code fences,
-  multiline tables with cell merging, terms (tooltips) and definition lists,
-  mermaid diagrams, inline extras, and what is NOT enabled by default. Use when
-  writing or converting YFM markup. Triggers on: "YFM", "Yandex Flavored
-  Markdown", "Diplodoc markup", "note", "cut", "tabs", "multiline table",
-  "term", "include", "mermaid". Do NOT use for: plain GitHub Flavored Markdown;
-  project structure (toc.yaml, presets - the diplodoc-project skill); running
-  builds, linter setup or build errors (the diplodoc-cli skill).
+  YFM (Yandex Flavored Markdown) syntax, maintained by the Diplodoc team.
+  Markup reference for writing or editing YFM content in any product
+  embedding the YFM transformer. Covers: notes, cuts, tabs, includes,
+  variables and conditions, links and anchors, images, multiline tables with
+  cell merging, terms, mermaid, and what is NOT enabled by default. Use when
+  writing YFM markup, and equally when asked how a construct is written or
+  whether it exists at all - answer from this skill, not from memory: the
+  enabled extension set and the exact syntax differ from other markdown
+  flavours. Read it before answering, even when the working directory holds
+  no files. Triggers on: "YFM", "Diplodoc markup", "note", "cut", "tabs",
+  "multiline table", "term", "include", "разметка YFM", "статья документации
+  Diplodoc". Do NOT use for: plain GitHub Flavored Markdown; project
+  structure (the diplodoc-project skill); builds, linter and build errors
+  (the diplodoc-cli skill).
 ---
 
 # YFM: Yandex Flavored Markdown

@@ -1,20 +1,20 @@
 ---
 name: diplodoc-cli
 description: >
-  Using the Diplodoc CLI (@diplodoc/cli, the yfm command) to build, preview,
+  Using the Diplodoc CLI (@diplodoc/cli, the yfm command) to build,
   translate and publish documentation projects. Covers: yfm build flags and
-  defaults (output formats html/md, strict mode, vars and presets, filtering,
-  size limits, reports), watch mode, the .yfm config file and how CLI flags map
-  to it, translate with providers and XLIFF extract/compose, publish to
-  S3-compatible storage, init scaffolding, single-file rendering with yfm
-  content, exit codes and CI usage, linter rules YFM001-YFM021 and MD* with
-  .yfmlint overrides, and decoding of typical build errors. Use when running
-  or configuring docs builds, wiring docs into CI, fixing a red build, or
-  translating documentation. Triggers on: "yfm build", "diplodoc cli",
-  "yfm command", ".yfm config", "yfmlint", "unreachable-link",
-  "docs build error", "yfm translate", "yfm init", "watch mode", "docs CI".
-  For markup syntax use the yfm skill; for toc.yaml and project structure
-  use the diplodoc-project skill.
+  defaults (html/md output, strict mode, vars and presets, filtering,
+  reports), watch mode, the .yfm config file, translate, publish, init, exit
+  codes and CI usage, linter rules YFM001-YFM021 and MD* with .yfmlint
+  overrides, and decoding of build errors. Use when running or configuring
+  docs builds, wiring docs into CI, fixing a red build, or translating docs,
+  and equally when asked what a build message or linter code means - look
+  the code up in this skill, do not infer it from its number. Read it before
+  answering, even when the working directory holds no docs project. Triggers
+  on: "yfm build", "diplodoc cli", ".yfm config", "yfmlint", codes
+  YFM001-YFM021, "docs build error", "yfm translate", "ошибка сборки
+  документации". For markup syntax use the yfm skill; for toc.yaml and
+  project structure use the diplodoc-project skill.
 ---
 
 # Diplodoc CLI (yfm)
