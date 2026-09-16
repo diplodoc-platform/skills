@@ -24,6 +24,14 @@ Diplodoc toolchain. Project structure (toc.yaml, presets, frontmatter keys) is
 the **diplodoc-project** skill; builds, linter and error decoding are the
 **diplodoc-cli** skill.
 
+**Never write syntax that is off by default.** Footnotes `[^1]`, task lists
+`- [ ]`, subscript `~x~`, underline `++x++` and highlight `==x==` reach the
+page as literal text. This outranks the request: when asked for them by name
+("add footnotes", "make a checklist"), answer that they are disabled and give
+either supported markup or the plugin switch for `.yfm` - do not put them in
+the file and then mention the problem. Details in rule 5 below and
+`references/extras.md`.
+
 ## References
 
 | File | When to read |
