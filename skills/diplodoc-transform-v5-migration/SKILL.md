@@ -24,7 +24,7 @@ the workflow for applying it to a consumer without losing its existing choices.
 
 Read this document **in full before planning migration edits**:
 
-https://raw.githubusercontent.com/diplodoc-platform/transform/2d06dda89b51081f49f479d030c64fe1d94f18d2/docs/migrations/transform-5-ru.md
+https://raw.githubusercontent.com/diplodoc-platform/transform/cbbb74b51bcbc162f91ea3cab09e9833ab29ae54/docs/migrations/transform-5-ru.md
 
 Fetch the raw Markdown, not a search excerpt. Record its source/revision where
 available and the target package version. Read linked detailed contracts when the
