@@ -26,22 +26,15 @@ links:
 
 ## Page frontmatter (metadata)
 
-The YAML block between `---` fences at the top of an `.md` page. Supported
-keys (not just title/description):
+Markdown uses a YAML block between `---` fences at the beginning of the file.
+Leading pages and standalone Page Constructor YAML pages put the same fields
+under `meta:`. The root `title`/`description` of a leading page describe its
+visible content; `meta.title`/`meta.description` are page metadata.
 
-| Key | What it does |
-|---|---|
-| `title` | page title |
-| `description` | meta description; also feeds `llms.txt` |
-| `keywords` | list of keywords |
-| `canonical` | canonical URL |
-| `alternate` | manual hreflang alternates |
-| `copyright` | copyright notice |
-| `interface` | per-page override of the `.yfm` interface section, e.g. `interface: {toc: false}` hides the sidebar on this page |
-| `metadata` | arbitrary `<meta>` tags: list of `{name/http-equiv/property, content}` |
-| `resources` | per-page CSP/resources (CSP extension only) |
-
-A duplicated key in frontmatter fails the build (YFM017).
+Read [metadata.md](metadata.md) for the full field map, custom HTML meta tags,
+examples and constraints. The authoritative contract is the
+[frontmatter schema](https://raw.githubusercontent.com/diplodoc-platform/ajv/refs/heads/master/src/json/frontmatter-schema.json),
+also referenced by the leading-page and Page Constructor schemas.
 
 ## Redirects
 

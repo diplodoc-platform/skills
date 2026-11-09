@@ -10,7 +10,7 @@ that builds cleanly, configure projects, and decode build errors.
 | Skill | Description |
 |---|---|
 | [yfm](skills/yfm/SKILL.md) | Pure YFM (Yandex Flavored Markdown) syntax for any host product: text semantics, blocks, multiline tables, terms, mermaid, media, inline extras |
-| [diplodoc-project](skills/diplodoc-project/SKILL.md) | Diplodoc project structure: toc.yaml, landing pages, frontmatter, presets, multi-language projects, redirects |
+| [diplodoc-project](skills/diplodoc-project/SKILL.md) | Diplodoc project structure: toc.yaml, landing pages, all page metadata and custom meta tags, schemas, presets, multi-language projects, redirects |
 | [diplodoc-cli](skills/diplodoc-cli/SKILL.md) | Using the `yfm` CLI: build flags, `.yfm` config precedence, linter rules and `.yfmlint`, build error decoding, translate, publish, CI usage |
 | [diplodoc-transform-v5-migration](skills/diplodoc-transform-v5-migration/SKILL.md) | Estimate, perform or resume a Transform 4→5 migration: dependencies, plugins, document ownership and browser assets |
 
