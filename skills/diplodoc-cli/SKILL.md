@@ -38,6 +38,24 @@ Markup syntax is the **yfm** skill; toc.yaml and project structure is the
 | `references/build-errors.md` | decoding build messages and how to fix them |
 | `references/translate.md` | `yfm translate`: providers, extract/compose/seed, caching |
 
+## Configuration schemas
+
+Read the matching [@diplodoc/ajv](https://github.com/diplodoc-platform/ajv)
+schema before adding configuration keys or interpreting structured output:
+
+| File | Machine-readable schema |
+|---|---|
+| `.yfm` | [yfm-schema.json](https://raw.githubusercontent.com/diplodoc-platform/ajv/refs/heads/master/src/json/yfm-schema.json) |
+| `.yfmlint` | [yfmlint-schema.json](https://raw.githubusercontent.com/diplodoc-platform/ajv/refs/heads/master/src/json/yfmlint-schema.json) |
+| `yfm-build-manifest.json` | [build-manifest-schema.json](https://raw.githubusercontent.com/diplodoc-platform/ajv/refs/heads/master/src/json/build-manifest-schema.json) |
+
+Follow `$ref` entries for nested definitions. `master` tracks current schemas;
+for an installed toolchain use the matching `@diplodoc/ajv` version
+(`@diplodoc/ajv/json/<name>-schema.json`). Schemas describe the data shape;
+command availability, defaults and precedence come from the CLI version in
+use. For page metadata, custom HTML meta tags, TOCs and other project files,
+read the **diplodoc-project** skill and its schema links.
+
 ## Commands
 
 | Command | What it does |

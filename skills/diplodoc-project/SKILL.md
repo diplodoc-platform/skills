@@ -4,15 +4,15 @@ description: >
   Structure and configuration of a Diplodoc documentation project,
   maintained by the Diplodoc team. Covers: project layout, toc.yaml
   mechanics (nesting, hidden/when/expanded, include modes, multiple tocs,
-  link rules), landing pages (index.yaml), page frontmatter keys, variable
+  link rules), landing pages (index.yaml), all page metadata and schemas, variable
   presets (presets.yaml), multi-language projects, redirects. Use when
   creating or reorganizing a docs project, editing toc.yaml or index.yaml,
-  setting up variables, languages or redirects, and equally when the
-  question is only about how one of these files works or where a setting
-  belongs - answer from this skill, not from memory: toc.yaml keys and
-  preset resolution are Diplodoc-specific and easy to misremember. Read it
+  editing metadata, variables, languages or redirects, and when explaining
+  these files or where a setting belongs. Read the schema rather than guessing
+  Diplodoc-specific keys or preset resolution. Read this skill
   before answering, even when the working directory holds no docs project.
-  Triggers on: "toc.yaml", "index.yaml", "presets.yaml", "frontmatter",
+  Triggers on: "toc.yaml", "index.yaml", "presets.yaml", "frontmatter", "meta",
+  "metadata", "метаданные", "метатеги",
   "redirects", "оглавление документации", "структура проекта документации".
   For markup syntax use the yfm skill; for build commands and linter use the
   diplodoc-cli skill.
@@ -28,7 +28,32 @@ How a Diplodoc docs project is organized and configured. Markup syntax is the
 | File | When to read |
 |---|---|
 | `references/toc.md` | toc.yaml: items, include modes, multiple tocs, href rules |
-| `references/pages.md` | landing pages (index.yaml), frontmatter keys, redirects |
+| `references/pages.md` | landing pages (index.yaml), metadata placement, redirects |
+| `references/metadata.md` | all page metadata fields, custom HTML meta tags, types and limits |
+
+## Authoritative schemas
+
+Before adding or changing a project field, read its schema from
+[@diplodoc/ajv](https://github.com/diplodoc-platform/ajv). Follow `$ref` entries
+for nested objects, allowed values and constraints; examples in this skill
+are not an exhaustive contract. These links return machine-readable JSON:
+
+| File or data | Schema |
+|---|---|
+| Markdown frontmatter; `meta` in YAML pages | [frontmatter-schema.json](https://raw.githubusercontent.com/diplodoc-platform/ajv/refs/heads/master/src/json/frontmatter-schema.json) |
+| Leading pages (`index.yaml`) | [leading-schema.json](https://raw.githubusercontent.com/diplodoc-platform/ajv/refs/heads/master/src/json/leading-schema.json) |
+| Page Constructor pages | [page-constructor-schema.json](https://raw.githubusercontent.com/diplodoc-platform/ajv/refs/heads/master/src/json/page-constructor-schema.json) |
+| `toc.yaml` | [toc-schema.json](https://raw.githubusercontent.com/diplodoc-platform/ajv/refs/heads/master/src/json/toc-schema.json) |
+| `presets.yaml` | [presets-schema.json](https://raw.githubusercontent.com/diplodoc-platform/ajv/refs/heads/master/src/json/presets-schema.json) |
+| `redirects.yaml` | [redirects-schema.json](https://raw.githubusercontent.com/diplodoc-platform/ajv/refs/heads/master/src/json/redirects-schema.json) |
+| Theme configuration | [theme-schema.json](https://raw.githubusercontent.com/diplodoc-platform/ajv/refs/heads/master/src/json/theme-schema.json) |
+
+The maintained sources are [`src/yaml/`](https://github.com/diplodoc-platform/ajv/tree/master/src/yaml);
+`src/json/` is generated. For an installed toolchain, use its `@diplodoc/ajv`
+version when it differs from `master` (schemas are exported as
+`@diplodoc/ajv/json/<name>-schema.json`). Build behavior still depends on the
+CLI and viewer version. The **diplodoc-cli** skill links `.yfm` and `.yfmlint`
+schemas.
 
 ## Project layout
 
