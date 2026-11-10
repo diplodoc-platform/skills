@@ -21,9 +21,10 @@ description: >
 Run without installing:
 `npx -p @diplodoc/cli yfm ...`.
 
-The core reference is based on @diplodoc/cli v5.55; metadata generation and
-runtime requirements are verified against v5.67.0. This skill owns commands,
-config, the linter and build error decoding.
+The core reference is based on @diplodoc/cli v5.55; runtime requirements are
+verified against v5.67.0. The metadata reference distinguishes released behavior
+from pending changes; check the CLI version before using its defaults. This skill
+owns commands, config, the linter and build error decoding.
 Markup syntax is the **yfm** skill; toc.yaml and project structure is the
 **diplodoc-project** skill.
 

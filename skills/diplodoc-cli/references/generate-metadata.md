@@ -1,13 +1,18 @@
 # Generate page metadata
 
 Available in `@diplodoc/cli` **5.67.0+**, requiring Node **24+** and npm
-**11.5.1+**. Verified against the
-[5.67.0 command source](https://github.com/diplodoc-platform/cli/tree/v5.67.0/src/commands/generate/metadata).
+**11.5.1+**.
+
+The field-selection behavior below describes the **next CLI release (unreleased)**.
+In CLI **5.67.0–5.67.2**, omitting `--fields` selects all AJV frontmatter fields.
+For those releases, explicitly pass `--fields title,description,summary,keywords,tags`.
 
 `yfm generate metadata` edits source files in place. `-i` accepts one Markdown
 or YAML page, or a directory; it defaults to the current directory. There is
 no `--output` option for this command. The wizard runs in a terminal unless
-`--skip-interactive` is set; use that flag for unattended runs.
+`--skip-interactive` is set; use that flag for unattended runs. The wizard shows
+all AJV frontmatter fields, with nothing selected even when flags or config
+specify fields. Select at least one field to continue.
 
 ## Examples
 
@@ -28,9 +33,11 @@ yfm generate metadata -i ./docs/ru/about.md -c ./docs/.yfm \
   --mode overwrite --skip-interactive --retry 0 --rate-limit-retry 0
 ```
 
-Choose `--fields title,description,summary,keywords,tags` for the full
-descriptive set. Omit `--fields` to select all AJV frontmatter fields;
-publication settings still cannot be generated or changed by this command.
+The default fields are `title`, `description`, `summary`, `keywords` and `tags`.
+Non-interactive runs select these five when both `--fields` and
+`generate.metadata.fields` are omitted. Explicit selection accepts any AJV
+frontmatter field, including `--fields interface`; publication settings remain
+protected as described below. Unknown field names fail before any AI request.
 
 ## Selection and write behavior
 
@@ -41,9 +48,10 @@ publication settings still cannot be generated or changed by this command.
   Unselected fields are preserved. The model may omit selected fields;
   an empty result skips the file.
 - Only `title`, `description`, `summary`, `keywords` and `tags` can change.
-  Other fields, including `restricted-access`, `noIndex`, scripts and system
-  metadata, must be omitted or exactly match existing values. Matching
-  settings are not rewritten; changed or invented settings reject the response.
+  Selected publication settings, including `restricted-access`, `noIndex`,
+  scripts and system metadata, must be omitted or exactly match existing values
+  if returned by AI. Matching settings are not rewritten; changed or invented
+  settings reject the response. Unselected response keys are also rejected.
 - Markdown uses top-level frontmatter; leading and Page Constructor YAML
   pages use `meta`. Read the **diplodoc-project** skill's metadata reference
   for schemas, types and placement. `summary` must be a complete sentence
@@ -79,7 +87,9 @@ generate:
 `--auth` accepts a token or token-file path. Otherwise the provider reads
 `YANDEX_API_KEY` or `YC_IAM_TOKEN`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, or
 `ANTHROPIC_API_KEY`. `generate.metadata.auth` is rejected in `.yfm`.
-YandexGPT requires `--folder` unless `--model` is a full `gpt://` or `ds://` URI.
+YandexGPT requires a folder ID unless `--model` is a full `gpt://` or `ds://` URI.
+The wizard asks for it when needed, using the flag/config value as its default.
+For non-interactive runs, set `--folder` or `generate.metadata.folder`.
 Use `--api-base` and repeatable `--api-header 'Name: value'` for gateways;
 the config key for headers is `apiHeaders`. An authorization header can
 replace `--auth`. `OPENAI_BASE_URL`, `OPENROUTER_BASE_URL` and
@@ -91,7 +101,7 @@ replace `--auth`. `OPENAI_BASE_URL`, `OPENROUTER_BASE_URL` and
 |---|---|---|
 | `-i, --input <path>` | `.` | One file or a directory |
 | `-c, --config <path>` | `.yfm` | Explicit config path, useful for single-file input |
-| `--fields <list>` | All frontmatter fields | Comma-separated field names |
+| `--fields <list>` | Five descriptive fields | Any AJV frontmatter fields; wizard starts unselected |
 | `--mode <mode>` | `missing` | `missing` or `overwrite` |
 | `--provider <provider>` | `yandexgpt` | `yandexgpt`, `openai`, `openrouter`, `anthropic` |
 | `--model <name>` | Provider default | Same defaults as `translate` |
@@ -109,3 +119,5 @@ Select only needed fields to reduce prompt size and invalid responses.
 Set both retry flags to `0` to disable retries, including rate-limit retries.
 `--max-output-tokens` limits one response, not the total input/output token
 usage or cost of a directory run. Check a small sample before a large run.
+Review generated wording for factual accuracy and natural phrasing. The prompt
+asks for concrete topics and user tasks; schema validation cannot judge prose.
