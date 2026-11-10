@@ -2,7 +2,7 @@
   "name": "diplodoc",
   "displayName": "Diplodoc Skills",
   "description": "Skills for the Diplodoc documentation platform: YFM syntax, tables, terms, toc.yaml, linter configuration, build error decoding, and the yfm CLI",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": {
     "name": "Diplodoc team"
   },
