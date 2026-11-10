@@ -20,8 +20,10 @@
 
 If `.yfm` has a top-level `build:` key, `yfm build` reads only that subtree;
 otherwise the whole document is the build config. `publish`, `translate`,
-`translate extract`, `translate compose` read their own strict scopes
-(`publish:`, `translate:`, `translate.extract`, ...).
+`translate extract`, `translate compose`, `generate metadata` read their own
+strict scopes (`publish:`, `translate:`, `translate.extract`,
+`generate.metadata`, ...). See [generate-metadata.md](generate-metadata.md)
+for the metadata command's configuration and single-file config discovery.
 
 ## Precedence: CLI over config - with one trap
 
@@ -47,6 +49,7 @@ The CLI asserts these are NOT present in `.yfm` and fails otherwise:
 - publish `accessKeyId` / `secretAccessKey` - flags only;
 - translate `auth` / `authToken` - flags or provider env vars
   (`YANDEX_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, ...).
+- `generate.metadata.auth` - `--auth` or provider env vars.
 
 ## Flag aliases
 

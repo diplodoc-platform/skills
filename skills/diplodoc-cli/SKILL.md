@@ -1,30 +1,29 @@
 ---
 name: diplodoc-cli
 description: >
-  Using the Diplodoc CLI (@diplodoc/cli, the yfm command) to build,
-  translate and publish documentation projects. Covers: yfm build flags and
-  defaults (html/md output, strict mode, vars and presets, filtering,
-  reports), watch mode, the .yfm config file, translate, publish, init, exit
-  codes and CI usage, linter rules YFM001-YFM021 and MD* with .yfmlint
-  overrides, and decoding of build errors. Use when running or configuring
-  docs builds, wiring docs into CI, fixing a red build, or translating docs,
-  and equally when asked what a build message or linter code means - look
-  the code up in this skill, do not infer it from its number. Read it before
-  answering, even when the working directory holds no docs project. Triggers
-  on: "yfm build", "diplodoc cli", ".yfm config", "yfmlint", codes
-  YFM001-YFM021, "docs build error", "yfm translate", "ошибка сборки
-  документации". For markup syntax use the yfm skill; for toc.yaml and
-  project structure use the diplodoc-project skill.
+  Use when running or configuring the Diplodoc CLI (@diplodoc/cli, yfm):
+  builds and CI, metadata generation, translate, publish, init, .yfm
+  configuration, or diagnosing build errors and linter codes. Covers build
+  flags, watch mode, config precedence, providers, exit codes, and .yfmlint
+  overrides for YFM001-YFM021 and MD* rules. Read this skill before explaining
+  a diagnostic; look up its code instead of guessing, even outside a docs
+  project. Triggers on "yfm build", "yfm generate metadata", "генерация
+  метаданных", "diplodoc cli", ".yfm config", "yfmlint", "yfm translate",
+  "docs build error" and "ошибка сборки документации". For markup use yfm;
+  for page metadata schemas, toc.yaml and project structure use
+  diplodoc-project.
 ---
 
 # Diplodoc CLI (yfm)
 
 `@diplodoc/cli` builds Diplodoc documentation projects. Binaries: `yfm` and
-`docs` (identical). Requires Node 22+. Run without installing:
+`docs` (identical). Current releases require Node 24+ and npm 11.5.1+.
+Run without installing:
 `npx -p @diplodoc/cli yfm ...`.
 
-Verified against @diplodoc/cli v5.55 source. This skill owns everything about
-running the toolchain: commands, config, the linter and build error decoding.
+The core reference is based on @diplodoc/cli v5.55; metadata generation and
+runtime requirements are verified against v5.67.0. This skill owns commands,
+config, the linter and build error decoding.
 Markup syntax is the **yfm** skill; toc.yaml and project structure is the
 **diplodoc-project** skill.
 
@@ -37,6 +36,7 @@ Markup syntax is the **yfm** skill; toc.yaml and project structure is the
 | `references/lint.md` | linter rules YFM001-YFM021 and MD*, the `.yfmlint` file, inline disabling |
 | `references/build-errors.md` | decoding build messages and how to fix them |
 | `references/translate.md` | `yfm translate`: providers, extract/compose/seed, caching |
+| `references/generate-metadata.md` | `yfm generate metadata`: fields, modes, providers, in-place edits and request limits |
 
 ## Configuration schemas
 
@@ -63,6 +63,7 @@ read the **diplodoc-project** skill and its schema links.
 | `yfm build` | build a project; **the default command** - `yfm -i ./docs -o ./out` works |
 | `yfm content` | render one md file to stdout or a file (html fragment or self-contained md) |
 | `yfm init` | scaffold a new project (interactive; `--skip-interactive` for CI) |
+| `yfm generate metadata` | generate selected page metadata in source files using AI; available since 5.67.0 |
 | `yfm translate` | translate docs via a provider; subcommands `extract`, `compose`, `seed` |
 | `yfm publish` | upload a built dir to S3-compatible storage |
 
@@ -96,6 +97,10 @@ yfm content -i ./docs/page.md -f md --raw > page.md
 # scaffold a project
 yfm init -o ./docs --langs en,ru --template full --skip-interactive
 ```
+
+To generate metadata, read [generate-metadata.md](references/generate-metadata.md)
+for authentication, examples and write behavior. Use the **diplodoc-project**
+skill for field schemas and placement in Markdown or YAML pages.
 
 ## Key behaviors (the things that surprise people)
 
