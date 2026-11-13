@@ -24,7 +24,7 @@ the workflow for applying it to a consumer without losing its existing choices.
 
 Read this document **in full before planning migration edits**:
 
-https://raw.githubusercontent.com/diplodoc-platform/transform/3e06465c4cce4168f1eabedd37eb5b5d38f4885b/docs/migrations/transform-5-ru.md
+https://raw.githubusercontent.com/diplodoc-platform/transform/be2503cff30911c645a7fa618a2db89522e3a46f/docs/migrations/transform-5-ru.md
 
 Fetch the raw Markdown, not a search excerpt. Record its source/revision where
 available and the target package version. Read linked detailed contracts when the
@@ -69,9 +69,13 @@ from each owner, including nested dependencies. An npm alias can name an additio
 real v5 dependency; it cannot make v5 satisfy a v4 peer or prove which renderer runs.
 Do not force every workspace to v5 or move unrelated Gravity/UI providers.
 
-**Availability is a gate.** As of 2026-11-02, stable `5.0.0` and the reviewed
-Utils compat4, HTML, Page and Gravity companion candidates were not published.
-Recheck the configured registry rather than assuming these versions exist. A
+**Availability is a gate.** Transform `5.0.0-beta.1` and its coordinated extension
+betas are published under `transform5`; use the exact versions in the guide when
+updating direct dependencies. Stable major ranges do not include beta versions.
+Stable Transform `5.0.0` is not published. Legacy-host compatibility patches and
+prebuilt consumer assets have their own release status; the Core beta does not
+prove their availability. Recheck the configured registry for each required
+package. A
 missing release or unresolved required peer blocks normal adoption; report the
 exact package/range and continue independent assessment. Do not fabricate versions,
 publish missing packages, or use `--force`, peer bypasses, disguised aliases or
