@@ -3,7 +3,8 @@
 Agent skills for the [Diplodoc](https://diplodoc.com) documentation platform,
 maintained by the Diplodoc team. Skills teach AI coding agents (Claude Code,
 Cursor, Codex, and others) to work with Diplodoc correctly: write YFM markup
-that builds cleanly, configure projects, and decode build errors.
+that builds cleanly, configure projects, decode build errors, and measure
+documentation quality against product contracts and source evidence.
 
 ## Skills
 
@@ -13,6 +14,7 @@ that builds cleanly, configure projects, and decode build errors.
 | [diplodoc-project](skills/diplodoc-project/SKILL.md) | Diplodoc project structure: toc.yaml, landing pages, all page metadata and custom meta tags, schemas, presets, multi-language projects, redirects |
 | [diplodoc-cli](skills/diplodoc-cli/SKILL.md) | Using the `yfm` CLI: build flags, metadata generation, `.yfm` config precedence, linter rules and `.yfmlint`, build error decoding, translate, publish, CI usage |
 | [diplodoc-transform-v5-migration](skills/diplodoc-transform-v5-migration/SKILL.md) | Estimate, perform or resume a Transform 4→5 migration: dependencies, plugins, document ownership and browser assets |
+| [diplodoc-review](skills/diplodoc-review/SKILL.md) | Quantitative documentation audits against product contracts with evidence ledgers and JavaScript tools; optional content and presentation rubrics |
 
 ## Installation
 
