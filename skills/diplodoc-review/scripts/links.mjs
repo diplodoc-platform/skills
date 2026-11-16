@@ -11,6 +11,14 @@ import {loadJson} from './measure.mjs';
 const digest = (text) => createHash('sha256').update(text).digest('hex');
 const compact = (text) => String(text).replace(/\s+/g, ' ').trim().slice(0, 2000);
 
+function comparePaths(left, right) {
+    if (left === right) {
+        return 0;
+    }
+
+    return left < right ? -1 : 1;
+}
+
 async function parserFor() {
     for (const from of [
         createRequire(resolve(process.cwd(), 'package.json')),
@@ -27,7 +35,7 @@ async function parserFor() {
         const parser = await import(pathToFileURL(entry).href);
 
         if (typeof parser.load !== 'function') {
-            throw new Error('The installed cheerio package must export load');
+            throw new TypeError('The installed cheerio package must export load');
         }
 
         return {load: parser.load, entry, version: from('cheerio/package.json').version};
@@ -61,11 +69,14 @@ function pageFor(root, path, load) {
     let content = text;
 
     if (state) {
-        const decoded = state.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+        const decoded = state
+            .replaceAll('&lt;', '<')
+            .replaceAll('&gt;', '>')
+            .replaceAll('&amp;', '&');
         const data = JSON.parse(decoded).data;
 
         if (typeof data?.html !== 'string') {
-            throw new Error(
+            throw new TypeError(
                 `No rendered article HTML in ${path}; use rendered static output or record a concrete inventory blocker`,
             );
         }
@@ -209,7 +220,7 @@ export async function collectLinks(input, root) {
     const pages = [];
     const seenPages = new Set();
 
-    for (const path of [...input.pages].sort()) {
+    for (const path of [...input.pages].sort(comparePaths)) {
         const page = getPage(path);
 
         if (seenPages.has(page.file)) {
