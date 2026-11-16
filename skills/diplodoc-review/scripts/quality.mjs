@@ -1,9 +1,13 @@
 #!/usr/bin/env node
 import {resolve} from 'node:path';
+import {existsSync} from 'node:fs';
 import {parseArgs} from 'node:util';
 import {pathToFileURL} from 'node:url';
 
-import {loadJson, loadLedger, summarize} from './measure.mjs';
+import {compareText, loadJson, loadLedger, roundScore, summarize} from './measure.mjs';
+import {buildReproducibility, checkBaseline} from './reproducibility.mjs';
+
+export {checkBaseline} from './reproducibility.mjs';
 
 const WEIGHTS = {
     FCR: 20,
@@ -139,46 +143,29 @@ function metricValue(name, input) {
     return (costs[Math.floor((costs.length - 1) / 2)] + costs[Math.floor(costs.length / 2)]) / 2;
 }
 
-function valueRange(name, counts, value) {
-    if (name === 'TTC') {
-        if (value === null || counts.unknown > 0) {
-            return null;
-        }
-
-        return {min: value, max: value};
-    }
-
-    if (!counts.eligible) {
-        return null;
-    }
-
-    return {
-        min: counts.numerator / counts.eligible,
-        max: (counts.numerator + counts.unknown) / counts.eligible,
-    };
-}
-
 function assessMetric(name, input, recall) {
     const weight = WEIGHTS[name];
     const value = metricValue(name, input);
     const counts = metricCounts(name, input, recall);
-    const range = valueRange(name, counts, value);
-    let penaltyRange = {min: 0, max: weight};
+    let penalty = weight;
 
-    if (range !== null) {
-        const first = weight * penaltyFraction(name, range.min);
-        const last = weight * penaltyFraction(name, range.max);
-        penaltyRange = {min: Math.min(first, last), max: Math.max(first, last)};
+    if (input.status === 'not_applicable') {
+        penalty = 0;
+    } else if (name === 'TTC') {
+        if (value !== null && counts.unknown === 0) {
+            penalty = weight * penaltyFraction(name, value);
+        }
+    } else if (counts.eligible > 0) {
+        const worst = (counts.numerator + (name === 'ERR' ? counts.unknown : 0)) / counts.eligible;
+        penalty = weight * penaltyFraction(name, worst);
     }
 
     return {
         status: input.status,
         value,
         ...counts,
-        value_range: range,
         max_penalty: weight,
-        penalty: value === null ? null : weight * penaltyFraction(name, value),
-        penalty_range: penaltyRange,
+        penalty,
         explanation: input.explanation,
     };
 }
@@ -192,33 +179,85 @@ function assessQuality(measurements) {
     );
     const values = Object.values(metrics);
     const measuredWeight = values
-        .filter((metric) => metric.penalty !== null)
+        .filter((metric) => metric.value !== null)
         .reduce((sum, metric) => sum + metric.max_penalty, 0);
     const completeWeight = values
-        .filter((metric) => metric.penalty_range.min === metric.penalty_range.max)
+        .filter(
+            (metric) =>
+                metric.status === 'not_applicable' || (metric.eligible > 0 && metric.unknown === 0),
+        )
         .reduce((sum, metric) => sum + metric.max_penalty, 0);
-    const minimum = Math.max(
-        0,
-        100 - values.reduce((sum, metric) => sum + metric.penalty_range.max, 0),
-    );
-    const maximum = Math.max(
-        0,
-        100 - values.reduce((sum, metric) => sum + metric.penalty_range.min, 0),
-    );
-    const dqs = minimum === maximum ? minimum : null;
-    const tier = tierFor(minimum) === tierFor(maximum) ? tierFor(minimum) : null;
+    const dqs = Math.max(0, 100 - values.reduce((sum, metric) => sum + metric.penalty, 0));
 
     return {
-        scoring_version: 'dqs-v1',
-        bounds_version: 'inventory-v1',
-        dqs,
-        tier,
-        tier_range: {min: tierFor(minimum), max: tierFor(maximum)},
+        scoring_version: 'dqs-v2',
+        unknown_policy: 'maximum_penalty',
+        dqs: roundScore(dqs),
+        tier: tierFor(dqs),
         measured_weight: measuredWeight,
         complete_weight: completeWeight,
-        score_range: {min: minimum, max: maximum},
         metrics,
     };
+}
+
+function compareIds(first, second) {
+    return compareText(first.id, second.id);
+}
+
+function compactText(value) {
+    return typeof value === 'string' && /\S/.test(value) && value?.length <= 2000;
+}
+
+function recommendationsFor(data) {
+    const recommendations = [...(data.recommendations ?? [])];
+
+    for (const row of [...data.facts, ...(data.examples ?? []), ...(data.links ?? [])]) {
+        if (!row.recommendation?.trim()) {
+            continue;
+        }
+
+        recommendations.push({
+            id: row.id,
+            priority: row.priority ?? 'medium',
+            sources: [
+                ...new Set([...(row.documentation ?? []), row.product, row.source].filter(Boolean)),
+            ],
+            problem: excerpt(
+                `${row.status}: ${row.statement ?? row.promise ?? row.source}. ${row.verification?.evidence ?? row.evidence ?? row.reason ?? ''}`,
+            ),
+            recommendation: row.recommendation,
+        });
+    }
+
+    const ids = new Set();
+
+    for (const row of recommendations) {
+        if (
+            typeof row.id !== 'string' ||
+            !row.id.trim() ||
+            row.id.length > 200 ||
+            ids.has(row.id) ||
+            !['critical', 'high', 'medium', 'low'].includes(row.priority) ||
+            !Array.isArray(row.sources) ||
+            !row.sources.length ||
+            row.sources.length > 20 ||
+            [row.problem, row.recommendation, ...row.sources].some((value) => !compactText(value))
+        ) {
+            throw new Error(
+                'Recommendations require unique IDs, priority, sources, problem and recommendation (up to 2000 characters per text).',
+            );
+        }
+
+        ids.add(row.id);
+    }
+
+    if (recommendations.length > 100) {
+        throw new Error(
+            'Keep at most 100 recommendations in the compact quality report; retain the full ledger.',
+        );
+    }
+
+    return recommendations.sort(compareIds);
 }
 
 function auditBlockers(data) {
@@ -437,11 +476,13 @@ export function prepareQuality(
         revisions: data.revisions ?? {},
         ledger_sha256: result.ledger_sha256,
         retrieval_protocol: result.retrieval?.protocol ?? null,
+        profile: buildReproducibility(data, measurements, result.retrieval?.protocol ?? null),
         explanation: excerpt(
             data.explanation ??
                 `${data.scope}. Facts: ${result.counts.CORRECT} correct, ${result.counts.CONTRADICTED} contradicted, ${result.counts.MISSING} missing, ${result.counts.AMBIGUOUS} ambiguous, ${result.counts.UNKNOWN} unknown.`,
         ),
         measurements,
+        recommendations: recommendationsFor(data),
         assessment: mode === 'short' ? null : assessQuality(measurements),
         completion: auditCompletion(data, measurements, mode),
     };
@@ -455,13 +496,16 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
                 help: {type: 'boolean'},
                 retrieval: {type: 'string'},
                 mode: {type: 'string'},
+                baseline: {type: 'string', default: '.diplodoc-review/quality.json'},
+                recalibrate: {type: 'boolean'},
+                replay: {type: 'boolean'},
                 'evidence-limit': {type: 'string', default: '3'},
             },
         });
 
         if (values.help) {
             console.log(
-                'Usage: node quality.mjs ledger.json [--retrieval retrieval.json] [--mode full|short] [--evidence-limit 3]',
+                'Usage: node quality.mjs ledger.json [--retrieval retrieval.json] [--mode full|short] [--baseline .diplodoc-review/quality.json] [--recalibrate] [--replay] [--evidence-limit 3]',
             );
         } else {
             if (positionals.length !== 1) {
@@ -476,6 +520,26 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
                 Number(values['evidence-limit']),
                 values.mode,
             );
+
+            if (result.assessment !== null && !values.replay && !result.profile.guarded) {
+                throw new Error(
+                    'Full audits require source_snapshot from sources.mjs and normalized fact units. Use --replay only for legacy arithmetic.',
+                );
+            }
+
+            if (values.replay && values.recalibrate) {
+                throw new Error('--replay cannot accept a new calibrated baseline.');
+            }
+
+            if (values.replay) {
+                result.profile.guarded = false;
+                result.replay_only = true;
+            }
+
+            if (!values.replay && !values.recalibrate && existsSync(values.baseline)) {
+                checkBaseline(result, loadJson(values.baseline));
+            }
+
             process.stdout.write(JSON.stringify(result, null, 2) + '\n');
 
             if (result.completion.status === 'incomplete') {

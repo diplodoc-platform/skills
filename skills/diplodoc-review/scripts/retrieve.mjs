@@ -6,13 +6,14 @@ import {dirname, isAbsolute, relative, resolve} from 'node:path';
 import {parseArgs} from 'node:util';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 
-import {ledgerHash, loadLedger, retrievalSummary, searchHash, validateLedger} from './measure.mjs';
-
-const requireValue = (condition, message) => {
-    if (!condition) {
-        throw new Error(message);
-    }
-};
+import {
+    ledgerHash,
+    loadLedger,
+    requireValue,
+    retrievalSummary,
+    searchHash,
+    validateLedger,
+} from './measure.mjs';
 
 const lexical = (text) =>
     text

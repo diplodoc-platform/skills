@@ -33,10 +33,15 @@ on that inventory's adequacy. Do not change fact granularity to improve a rate.
 Keep facets visible alongside a versioned score; its weights are declared policy,
 not empirically validated effect sizes.
 
-## DQS v1
+## DSQ
 
 `quality.mjs` applies this declared profile to the audited sample. Rates are
 fractions, and TTC is the median among correct facts found within 4000 BPE tokens.
+Inventory size varies with the product and declared scope; there is no fixed
+contract quota. With equal coverage, 9/10 and 90/100 receive the same penalty.
+Weights stay fixed: never deduct points per raw finding or increase a metric
+weight because a product has more rules. Different proportions, uncertainty
+or retrieval costs may legitimately change DSQ; inventory size alone does not.
 
 | Metric | Penalty |
 | --- | --- |
@@ -48,28 +53,38 @@ fractions, and TTC is the median among correct facts found within 4000 BPE token
 | EPR | `10 × (1 − EPR)` |
 | LHR-T / LHR-S | `5 × (1 − technical)` / `10 × (1 − semantic)` |
 
-`DQS=max(0,100−sum(penalties))`. Tiers use the unrounded value:
-S ≥95, A ≥85, B ≥70, C ≥55, D <55. For a rate with `n` successes, `d`
-checked and `e` eligible, its possible value is `[n/e, (n+e-d)/e]`. For ERR,
-"successes" here means confirmed errors. Apply the monotone penalty formula to
-both endpoints, then sum penalty bounds: DQS is
-`[max(0,100−sum(max_penalties)), max(0,100−sum(min_penalties))]`.
-A completely unmeasured or inapplicable component retains `[0, weight]` penalty
-uncertainty; weights are never silently redistributed. TTC uses its observed
-conditional median, or a full penalty interval when no median is available or
-unverified facts can still change the correct-only retrieval population. Those
-facts remain potentially eligible for Recall; resolving them requires a new
-retrieval for any newly verified fact. Completed retrieval with no correct or
-unverified facts makes correct-only Recall/TTC explicitly inapplicable.
+`DSQ=max(0,100−sum(penalties))`. Round the final score to two decimal places;
+keep raw ratios and penalties exact. Tiers use the unrounded value:
+S ≥95, A ≥85, B ≥70, C ≥55, D <55. There is one conservative score, not a range.
+For a rate with `n` successes, `d` checked and `e` eligible, use `n/e` for its
+penalty; for ERR use `(n+e-d)/e`. Thus only the unknown applicable portion gets
+its maximum penalty. A wholly unmeasured applicable facet gets its full weight.
+TTC gets 10 when no median is available or unknown facts can change its eligible
+population; otherwise use the observed conditional median. Preserve misses as
+censored and count them in Recall. Genuinely inapplicable facets get zero
+penalty, with no redistribution of weights. A complete inventory with no
+examples or links is inapplicable; an uncollected inventory is unmeasured.
+Missing required knowledge is an FCR defect, never grounds for N/A. Completed
+retrieval with no correct or unverified facts makes Recall/TTC inapplicable.
 
 `measured_weight` counts facets with observed values; `complete_weight` counts
-facets with a determined penalty. `dqs` exists only for an exact score; `tier`
-exists when the entire score interval belongs to one tier. Otherwise report
-`score_range` and `tier_range`. Stable classification does not imply complete
-observations: also report per-metric `completion` and checked/eligible counts.
-These bounds retain known findings without assuming unknowns pass or fail.
+facets whose applicable inventory has been checked, including N/A. Always give
+`dqs` (DSQ) and `tier` in full mode, alongside per-metric `completion` and
+checked/eligible counts. A conservative penalty is policy, not a claim that an
+unverified item is defective. Attempt every applicable check before accepting
+a blocker. Historical interval scores use a different policy; do not compare them directly.
 Preserve raw counts, found/censored costs and evidence. Outputs remain
 self-reported and conditional on the frozen inventory and annotation accuracy.
+
+## Frozen profile
+
+The project registry fixes normalized units and queries, not a universal number
+of facts. A generated source_snapshot fixes real input bytes and version tokens.
+The baseline guard compares each check's dependencies and origin; generated HTML
+IDs and diagnostic prose never identify sources. Gold coordinates and link
+definitions can update with their real source. Retrieval changes globally with
+the corpus; unrelated semantic verdicts remain protected. Reproducibility rules,
+initial migration and arithmetic-only legacy replay are in reproducibility.md.
 
 ## Keep evaluation layers separate
 

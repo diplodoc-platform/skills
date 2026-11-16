@@ -6,18 +6,10 @@ import {extname, isAbsolute, relative, resolve, sep} from 'node:path';
 import {parseArgs} from 'node:util';
 import {pathToFileURL} from 'node:url';
 
-import {loadJson} from './measure.mjs';
+import {compareText, loadJson} from './measure.mjs';
 
 const digest = (text) => createHash('sha256').update(text).digest('hex');
 const compact = (text) => String(text).replace(/\s+/g, ' ').trim().slice(0, 2000);
-
-function comparePaths(left, right) {
-    if (left === right) {
-        return 0;
-    }
-
-    return left < right ? -1 : 1;
-}
 
 async function parserFor() {
     for (const from of [
@@ -220,7 +212,7 @@ export async function collectLinks(input, root) {
     const pages = [];
     const seenPages = new Set();
 
-    for (const path of [...input.pages].sort(comparePaths)) {
+    for (const path of [...input.pages].sort(compareText)) {
         const page = getPage(path);
 
         if (seenPages.has(page.file)) {

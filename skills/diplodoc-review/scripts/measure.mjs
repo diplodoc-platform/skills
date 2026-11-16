@@ -2,14 +2,14 @@
 import {createHash} from 'node:crypto';
 import {readFileSync, realpathSync, statSync} from 'node:fs';
 import {isAbsolute, relative, resolve, sep} from 'node:path';
-import {parseArgs} from 'node:util';
+import {isDeepStrictEqual, parseArgs} from 'node:util';
 import {pathToFileURL} from 'node:url';
 
 const STATUSES = ['CORRECT', 'MISSING', 'CONTRADICTED', 'AMBIGUOUS', 'UNKNOWN'];
 const KINDS = ['literal', 'schema', 'test', 'runtime', 'manual'];
 const PRIORITIES = ['critical', 'high', 'medium', 'low'];
 
-const requireValue = (condition, message) => {
+export const requireValue = (condition, message) => {
     if (!condition) {
         throw new Error(message);
     }
@@ -50,9 +50,26 @@ export function ledgerHash(data) {
         .digest('hex');
 }
 
+export const roundScore = (score) => Number(score.toFixed(2));
+
+export function compareText(first, second) {
+    if (first === second) {
+        return 0;
+    }
+
+    return first < second ? -1 : 1;
+}
+
 export function searchHash(data) {
     return ledgerHash({
-        revisions: data.revisions ?? {},
+        revisions: data.source_snapshot
+            ? {
+                  documentation: [...data.source_snapshot.documentation].sort((a, b) =>
+                      compareText(a.path, b.path),
+                  ),
+                  environment: data.source_snapshot.environment,
+              }
+            : (data.revisions ?? {}),
         corpus: [...(data.corpus ?? [])].sort(),
         facts: data.facts
             .filter((row) => ['CORRECT', 'CONTRADICTED'].includes(row.status))
@@ -168,7 +185,7 @@ function validateRetrieval(data, retrieval) {
 
     for (const key of ['metrics', 'correct_only_recall', 'ttc']) {
         requireValue(
-            ledgerHash(retrieval[key]) === ledgerHash(expected[key]),
+            isDeepStrictEqual(retrieval[key], expected[key]),
             `Retrieval ${key} disagrees with its raw observations`,
         );
     }
@@ -233,10 +250,35 @@ function validateObservations(rows, name, known, measured) {
     }
 }
 
+export function normalizedUnit(row) {
+    const unit = row.unit;
+    requireValue(
+        unit &&
+            nonempty(unit.subject) &&
+            nonempty(unit.property) &&
+            unit.subject === unit.subject.trim() &&
+            unit.property === unit.property.trim() &&
+            unit.when &&
+            typeof unit.when === 'object' &&
+            !Array.isArray(unit.when) &&
+            Object.keys(unit).every(
+                (key) => key === 'subject' || key === 'property' || key === 'when',
+            ),
+        `fact ${row.id}: unit requires subject, property and when object`,
+    );
+    requireValue(
+        row.condition === Object.keys(unit.when).length > 0,
+        `fact ${row.id}: condition must match unit.when`,
+    );
+
+    return ledgerHash(unit);
+}
+
 export function validateLedger(data) {
     requireValue(data?.schema_version === 1, 'schema_version must be 1');
     requireValue(nonempty(data.scope), 'scope must describe the inspected sample');
     uniqueRows(data.facts, 'facts');
+    const units = new Set();
 
     for (const row of data.facts) {
         const name = `fact ${row.id}`;
@@ -251,6 +293,13 @@ export function validateLedger(data) {
             `${name}: statement and area are required`,
         );
         requireValue(typeof row.condition === 'boolean', `${name}: condition must be boolean`);
+
+        if (row.unit !== undefined) {
+            const key = normalizedUnit(row);
+            requireValue(!units.has(key), `${name}: duplicate normalized unit`);
+            units.add(key);
+        }
+
         requireValue(
             row.expected === undefined || typeof row.expected === 'boolean',
             `${name}: expected must be boolean`,
@@ -363,23 +412,8 @@ export function summarize(input, retrieval) {
             'Incomplete retrieval evidence',
         );
 
-        for (const [name, value] of Object.entries(retrieval.metrics)) {
-            requireValue(/^Recall@[1-9]\d*$/.test(name), `Unexpected retrieval metric: ${name}`);
-            requireValue(
-                Number.isSafeInteger(value.numerator) &&
-                    Number.isSafeInteger(value.denominator) &&
-                    value.numerator >= 0 &&
-                    value.denominator >= value.numerator,
-                `Invalid counts for ${name}`,
-            );
-            requireValue(
-                value.value === (value.denominator ? value.numerator / value.denominator : null),
-                `Invalid ratio for ${name}`,
-            );
-            metrics[name] = value;
-        }
-
         validateRetrieval(data, retrieval);
+        Object.assign(metrics, retrieval.metrics);
 
         const statuses = new Map(data.facts.map((row) => [row.id, row.status]));
 

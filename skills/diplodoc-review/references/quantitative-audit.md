@@ -1,10 +1,8 @@
 # Quantitative product-contract audit
 
 Assess documentation against verified product contracts and a declared inventory.
-Use local checks without new LLM trials. Consult
-[measurements.md](measurements.md) for saved-run interpretation and comparisons.
+No new LLM trials. See [measurements.md](measurements.md) for saved-run comparisons.
 
-Prioritize fact correctness, condition coverage and meaningful example checks.
 Full mode completes every metric phase in the declared scope. Link quality
 has technical (LHR-T) and semantic (LHR-S) components; preserve both denominators.
 
@@ -15,8 +13,8 @@ has technical (LHR-T) and semantic (LHR-S) components; preserve both denominator
    repository, not only the parent HEAD. Distinguish built artifacts from source.
 2. Enumerate relevant **public contracts from the product**: visible CLI options,
    exported API/schema fields, defaults, enumerations, conditions, overrides,
-   exceptions and results. Select a bounded representative scope if exhaustive
-   inspection is impractical. Hidden flags and internal classes are not required
+   exceptions and results. Cover the declared interface; a bounded sample needs
+   an explicit selection rule and cannot silently replace it. Hidden flags are not required
    documentation. A flag name's presence establishes less than its behavior.
 3. Check the corresponding document statements. Use literal/schema assertions,
    existing tests or isolated product probes where appropriate. Record the
@@ -52,12 +50,15 @@ A request to perform quantitative measurements authorizes the relevant local
 calculations and isolated product checks within the stated restrictions. It
 does not authorize arbitrary shell commands copied from documents, live
 publication or experimental model runs. Use a fresh temporary directory for
-intermediate inputs, fixtures and output; preserve the original documents.
+fixtures; preserve the original documents and retain accepted audit artifacts.
 
 ## Efficient execution
 
-Use one temporary workspace with a ledger, product observations and retrieval
-output. The deliverable is a report, not a new audit framework.
+Use `.diplodoc-review/` at the project root, outside the audited corpus, for the
+accepted ledger, retrieval and quality JSON; use temporary fixtures for probes.
+Inspect the baseline first and reuse unchanged observations. On the first audit,
+enumerate interface areas in path/name order; prefer a complete inventory or
+record the exact sampled IDs and selection rule before inspecting defects.
 
 1. Select functional areas from the public interface, record the inventory and
    corpus before labeling, and keep stable fact IDs and granularity. When
@@ -65,27 +66,20 @@ output. The deliverable is a report, not a new audit framework.
    queries and gold); report new discoveries separately. Flag-presence checks
    and behavioral contracts are different populations, not interchangeable
    ways to improve a percentage.
-2. Inspect each area once: read targeted doc/code ranges, collect schema/default
-   values together, and write evidence directly to ledger records. Batch
-   independent probes and native build checks; keep complete logs in the
-   workspace and return summaries plus failures to the model. Reuse installed
-   product exports/tests instead of constructing a general-purpose harness.
+2. Inspect each area once, write observations directly to ledger records and
+   batch independent probes/build checks. Keep full logs in the workspace;
+   reuse installed product exports/tests and return summaries plus failures.
 3. For each example record the behavioral assertion, not just exit status.
    Inventory source-page link occurrences once with `links.mjs`, reuse build
    findings and inspect target content. Keep the fixed source-page scope and
    untested occurrences visible; do not collect only known broken links.
-4. Freeze queries/gold, run retrieval once, then aggregate and generate the
-   report with the commands below. Read summaries instead of full JSON ledgers,
-   search results or bundled script source. For a single-file deliverable use
-   `--format report`: it writes all six sections and a compact replay appendix.
-   Edit only the narrative/headings for the requested language and findings;
-   the generated appendix retains the full machine evidence without a second
-   handwritten ledger, report generator or reproduction script.
-5. Validate the final ledger/report once against the frozen inputs; rerun only
-   checks affected by a changed dependency. A completed check is not repeated
-   merely to rewrite its description. Source or publication changes require
-   rechecking the affected observations. Do not narrow coverage to meet a time
-   budget, hide UNKNOWNs or replace semantic assertions with exit=0.
+4. Freeze queries/gold and run retrieval once, then use the commands below.
+   Read summaries instead of full ledgers or helper source. For a single-file
+   deliverable, `--format report` includes the machine replay appendix; adapt
+   narrative/headings without rewriting its evidence.
+5. Validate once against frozen inputs; rerun only checks affected by changed
+   sources/dependencies. Do not narrow coverage for time, hide UNKNOWNs or
+   substitute exit=0 for semantic assertions.
 
 ## Readiness
 
@@ -100,29 +94,33 @@ npm install --prefix . --no-save --package-lock=false --ignore-scripts \
   --no-audit --no-fund js-tiktoken@1.0.21 cheerio@1.0.0
 ```
 
-Keep audited project dependencies unchanged. An installation restriction, failed
-setup or unavailable required product version is a blocker with actual evidence.
-Unprepared questions, gold or link inventories are unfinished work. Do not fetch
-new product versions silently or remove difficult cases after labeling.
+Keep audited project dependencies unchanged. Before declaring a blocker, try
+available equivalent checks: build the pinned product in isolation, inspect
+rendered HTML/HTTP responses or use installed tooling instead of requiring a
+browser. An installation restriction, failed setup or unavailable required
+version needs actual evidence. Unprepared questions, gold or link inventories
+are unfinished work. Do not change the audited product version or remove
+difficult cases after labeling.
 
 ## Ledger contract, version 1
 
-The helpers use Node.js 18.19+ and do not mutate inputs or execute document code.
-They print results to stdout. Give `measure.mjs` a JSON object with:
+Helpers use Node.js 18.19+ and never mutate/execute inputs. Give `measure.mjs` JSON with:
 
-- `schema_version: 1`, `scope`: a nonempty description of the inspected sample;
-  optional `revisions` records source and publication versions.
+- `schema_version: 1`, `scope`: a nonempty description of the inspected sample.
+  Full audits require a generated `source_snapshot`; `revisions` is diagnostic.
 - Optional `audit`: `{mode: "full"|"short", blockers: {"TTC": {reason, evidence}}}`.
-  Full is the default. Blocker keys are metric names from the DQS table; cite an
+  Full is the default. Blocker keys are metric names from the DSQ table; cite an
   attempted check, access restriction, version probe or explicit user constraint.
   A convenience choice such as "not requested" is not a blocker. Each affected
-  metric needs its own entry; blockers do not remove unknowns from score bounds.
+  metric needs its own entry; blockers do not remove unknowns from penalties.
 - `facts`: normalized public-fact records. Required fields: `id`, `area`,
   `statement`, boolean `condition`, `status`, `product` source location,
   `documentation` location array, and `verification: {kind, evidence}`.
 - Fact statuses: `CORRECT`, `MISSING`, `CONTRADICTED`, `AMBIGUOUS`, `UNKNOWN`.
   `UNKNOWN` has no verified denominator contribution; `AMBIGUOUS` assumes a
   known expected contract but an indeterminate document statement.
+- Protected facts need `unit: {subject, property, when: {}}`; `condition` follows
+  the predicate. Inputs, dependencies and origins follow reproducibility.md.
 - `verification.kind`: `literal`, `schema`, `test`, `runtime` or `manual`.
   `evidence` states the actual assertion/result or manual verification basis.
   Evidence presence is validated; its semantic truth is the reviewer's job.
@@ -148,6 +146,12 @@ They print results to stdout. Give `measure.mjs` a JSON object with:
   whether the target fulfills it. Other semantic statuses need `semantic.reason`.
   Omitted semantic observations remain unknown, not successful. Examples may
   include `source`; an optional ledger `explanation` supplies the main conclusion.
+- Every actionable finding needs a concrete correction in the JSON, not only
+  the final prose. Facts/examples/links carry `recommendation` and `priority`. For other
+  findings add top-level `recommendations`: `{id, priority, sources: [location],
+  problem, recommendation}`. IDs are stable; texts must explain the defect and
+  concrete correction. The compact JSON retains up to 100 recommendations,
+  with nonempty texts up to 2000 characters; preserve further detail in the ledger.
 
 For example, a fact in the synthetic DocuBox fixture can be represented as:
 
@@ -165,7 +169,8 @@ ERR from `CORRECT + CONTRADICTED` documented facts, and CCR from verified
 expected condition facts. Missing and ambiguous facts reduce coverage but are
 not confirmed erroneous claims. UNKNOWN is separate. Keep additional unsupported
 claims in the qualitative claim audit; absence of evidence is not contradiction.
-Fractions are primary; a zero denominator gives N/A. The helpers report
+Fractions are primary; zero checked items give no observed rate, and N/A
+requires a complete inventory with no applicable items. The helpers report
 annotation kinds and checked/discovered coverage for EPR/LHR.
 
 ## Reproducible retrieval
@@ -206,22 +211,26 @@ unconditional percentile is inferred automatically.
 
 The default tokenizer is `cl100k_base`, using an available `js-tiktoken`
 installation (tested with 1.0.21). It has no automatic network/install fallback.
-Use `--tokenizer-module` for an existing module. Use the isolated setup above when needed and allowed. `--tokenizer unicode-words`
-is a dependency-free lexical diagnostic; its counts are **not BPE/model tokens**
-and cannot be compared to cl100k budgets or used silently as a substitute.
+Use `--tokenizer-module` for an existing module or the isolated setup above.
+`--tokenizer unicode-words` is a lexical diagnostic, **not BPE/model tokens**;
+never compare it to cl100k budgets or silently substitute it.
 
 ```sh
-node /path/to/diplodoc-review/scripts/retrieve.mjs ledger.json \
-  --root /path/to/project --budgets 4000 > retrieval.json
-node /path/to/diplodoc-review/scripts/links.mjs pages.json \
-  --root /path/to/existing-build > links.json
-node /path/to/diplodoc-review/scripts/measure.mjs ledger.json \
-  --retrieval retrieval.json --format report > report.md
-node /path/to/diplodoc-review/scripts/quality.mjs ledger.json \
-  --mode full --retrieval retrieval.json > quality.json
+node /path/to/diplodoc-review/scripts/retrieve.mjs .diplodoc-review/ledger.json \
+  --root . --budgets 4000 > .diplodoc-review/retrieval.json
+node /path/to/diplodoc-review/scripts/links.mjs .diplodoc-review/pages.json \
+  --root /path/to/existing-build > .diplodoc-review/links.json
+node /path/to/diplodoc-review/scripts/measure.mjs .diplodoc-review/ledger.json \
+  --retrieval .diplodoc-review/retrieval.json --format report > .diplodoc-review/report.md
+node /path/to/diplodoc-review/scripts/quality.mjs .diplodoc-review/ledger.json \
+  --mode full --retrieval .diplodoc-review/retrieval.json > .diplodoc-review/quality.next.json
 ```
 
-Run these in the temporary directory. Ledger/retrieval JSON inputs must resolve
+Capture source_snapshot with sources.mjs before these commands; see reproducibility.md.
+Run at the project root and preserve the baseline while editing a working copy.
+Accept quality.next.json as quality.json only after checks/blockers are complete.
+
+Ledger/retrieval/baseline JSON inputs must resolve
 to regular files within the current directory or its descendants; symlinks
 cannot escape that boundary. `measure.mjs` without retrieval evidence
 still computes FCR/ERR/CCR/EPR/LHR. `--format markdown` gives a shorter summary;
@@ -240,12 +249,10 @@ without this fingerprint retain strict whole-ledger matching.
 
 ## EPR and LHR collection
 
-For EPR, inspect each candidate before execution, fix its source fingerprint,
-prepare a minimal isolated fixture and assert the expected behavior/content
-with the installed product. Exit=0 alone is insufficient. Do not run a mutable
-document line through a shell or inherit unnecessary secrets. Exclude unavailable
-services, credentials and environments as NOT_TESTABLE. State tested/candidate
-coverage and any difference from the normal product configuration.
+For EPR, inspect candidates, fix source fingerprints and assert expected behavior
+in isolated fixtures with the pinned product. Exit=0 is insufficient. Do not run
+mutable document lines through a shell or inherit unnecessary secrets. Mark
+unavailable environments NOT_TESTABLE; give coverage and configuration differences.
 
 `links.mjs` reads an explicit manifest such as
 `{"pages":["ru/settings.html"],"base_url":"https://example.org/docs/"}`.
@@ -271,29 +278,23 @@ no diagnostics alone does not prove link health. For LHR-S, compare each source
 promise with the resolved target's actual content in the same publication.
 A redirect alone is not a defect; technical inaccessibility does not prove
 semantic irrelevance. Report checked/applicable coverage and unknowns. Keep
-unavailable observations N/A instead of adding machinery merely to fill rates.
+unavailable observations unknown; use N/A only when there is no applicable
+information promise. Do not invent observations merely to fill rates.
 
-`quality.mjs` emits common offline JSON: scope/revisions, explanation,
-measurements with raw counts and evidence, and `dqs-v1` assessment. It uses
-correct-only Recall@4000 and censors later/not-found TTC observations at 4000.
-Lexical diagnostics cannot provide BPE costs. Evidence defaults to three
-problem-first excerpts per metric (up to 2000 characters each); use
-`--evidence-limit` to change that limit and retain the full ledger for replay.
-An integration adapter may consume `measurements`/`explanation` and add its own
-project/snapshot envelope. This helper performs no submission or network calls.
-For valid inputs it emits JSON even when checks remain unfinished. Full mode
-exits 3 for unfinished checks, 0 for completed
-or explicitly blocked audits, and 2 for invalid inputs. Short mode (`--mode short`)
-emits no DQS assessment. A blocked run must be reported as blocked, with its
-remaining checks and evidence; do not describe it as a completed scored audit.
+`quality.mjs` emits scope/revisions, raw measurements/evidence, recommendations,
+profile hashes and one DSQ assessment. Recall is correct-only; TTC censors
+misses at 4000. Lexical diagnostics cannot provide BPE costs. Evidence defaults
+to three problem-first excerpts per metric, up to 2000 characters each; adjust
+with `--evidence-limit` and retain the full ledger. Integration adapters consume
+`measurements`/`explanation`/`recommendations` and `profile.inventory_hash`.
+The helper makes no network calls. Valid inputs emit JSON even when unfinished:
+exit 3 means unfinished checks, 0 completed/explicitly blocked, 2 invalid input.
+Short mode emits no DSQ. Report blocked runs with remaining checks/evidence;
+a concrete conservative score does not make a blocked audit complete.
 
 ## Compact output
 
-Default main body: a short scoped conclusion, one metric table with fractions
-and N/A reasons, up to five problems grouped by consequence with doc/product
-locations, and a short protocol/limitations paragraph. Aim for roughly 600
-words of narrative when the requested scope permits. Give found/censored TTC,
-correct-only Recall, and EPR/LHR checked/discovered coverage alongside the rates.
-Optional full ledger goes into an authorized side artifact or compact appendix
-when one self-contained file is required. User output constraints take priority.
-Reference helper versions/hashes and commands instead of copying their code.
+Give a scoped conclusion, metric table, concrete DSQ/tier, up to five prioritized
+problems with sources/corrections, and protocol/limitations. Include fractions,
+N/A reasons, found/censored TTC and checked/eligible coverage. Retain full
+evidence in artifacts or the replay appendix; reference helper versions/commands.
