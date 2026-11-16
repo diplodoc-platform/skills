@@ -49,12 +49,27 @@ fractions, and TTC is the median among correct facts found within 4000 BPE token
 | LHR-T / LHR-S | `5 × (1 − technical)` / `10 × (1 − semantic)` |
 
 `DQS=max(0,100−sum(penalties))`. Tiers use the unrounded value:
-S ≥95, A ≥85, B ≥70, C ≥55, D <55. Unknown, unavailable or inapplicable
-metrics yield no final score/tier; show measured weight and a conservative range.
-Recall and TTC share one inventory, so incomplete retrieval leaves both weights
-uncertain. Preserve numerator/denominator, eligible totals, found/censored costs
-and evidence. Outputs remain self-reported; a small selected sample or a build
-success cannot establish whole-project quality.
+S ≥95, A ≥85, B ≥70, C ≥55, D <55. For a rate with `n` successes, `d`
+checked and `e` eligible, its possible value is `[n/e, (n+e-d)/e]`. For ERR,
+"successes" here means confirmed errors. Apply the monotone penalty formula to
+both endpoints, then sum penalty bounds: DQS is
+`[max(0,100−sum(max_penalties)), max(0,100−sum(min_penalties))]`.
+A completely unmeasured or inapplicable component retains `[0, weight]` penalty
+uncertainty; weights are never silently redistributed. TTC uses its observed
+conditional median, or a full penalty interval when no median is available or
+unverified facts can still change the correct-only retrieval population. Those
+facts remain potentially eligible for Recall; resolving them requires a new
+retrieval for any newly verified fact. Completed retrieval with no correct or
+unverified facts makes correct-only Recall/TTC explicitly inapplicable.
+
+`measured_weight` counts facets with observed values; `complete_weight` counts
+facets with a determined penalty. `dqs` exists only for an exact score; `tier`
+exists when the entire score interval belongs to one tier. Otherwise report
+`score_range` and `tier_range`. Stable classification does not imply complete
+observations: also report per-metric `completion` and checked/eligible counts.
+These bounds retain known findings without assuming unknowns pass or fail.
+Preserve raw counts, found/censored costs and evidence. Outputs remain
+self-reported and conditional on the frozen inventory and annotation accuracy.
 
 ## Keep evaluation layers separate
 

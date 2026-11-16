@@ -17,6 +17,7 @@ const WEIGHTS = {
 };
 const checkedLink = (row) => ['VALID', 'BROKEN'].includes(row.status);
 const checkedSemantic = (row) => ['RELEVANT', 'IRRELEVANT'].includes(row.semantic?.status);
+const noApplicableFacts = (facts, population) => facts.length > 0 && population.length === 0;
 const excerpt = (value) =>
     String(value).length > 2000 ? String(value).slice(0, 1999) + '…' : String(value);
 
@@ -50,9 +51,15 @@ function evidenceFor(row) {
 function rate(name, metric, rows, eligible, evidenceLimit, absentReason, inapplicable = false) {
     const measured = metric.denominator > 0;
     let status = inapplicable ? 'not_applicable' : 'not_measured';
+    let explanation = absentReason;
+
+    if (inapplicable) {
+        explanation = `${name}: no applicable items in the declared inventory.`;
+    }
 
     if (measured) {
         status = 'measured';
+        explanation = `${name}: ${metric.numerator}/${metric.denominator}; ${eligible - metric.denominator} unmeasured of ${eligible} inventoried items.`;
     }
 
     return {
@@ -60,9 +67,7 @@ function rate(name, metric, rows, eligible, evidenceLimit, absentReason, inappli
         numerator: metric.numerator,
         denominator: metric.denominator,
         eligible,
-        explanation: measured
-            ? `${name}: ${metric.numerator}/${metric.denominator}; ${eligible - metric.denominator} unmeasured of ${eligible} inventoried items.`
-            : absentReason,
+        explanation,
         evidence: measured ? selectEvidence(rows, evidenceLimit).map(evidenceFor) : [],
     };
 }
@@ -94,68 +99,212 @@ function tierFor(dqs) {
     return tiers.find(([minimum]) => dqs >= minimum)?.[1] ?? 'D';
 }
 
-function assessQuality(measurements) {
-    const metrics = {};
-
-    for (const [name, weight] of Object.entries(WEIGHTS)) {
-        const input = measurements[name];
-        let value = input.status === 'measured' ? input.numerator / input.denominator : null;
-        let counts = {
+function metricCounts(name, input, recall) {
+    if (name !== 'TTC') {
+        return {
             numerator: input.numerator,
             denominator: input.denominator,
             eligible: input.eligible,
             unknown: input.eligible - input.denominator,
         };
-
-        if (name === 'TTC') {
-            const costs = input.samples
-                .flatMap(({tokens}) => (tokens === null ? [] : [tokens]))
-                .sort((a, b) => a - b);
-            value = costs.length
-                ? (costs[Math.floor((costs.length - 1) / 2)] +
-                      costs[Math.floor(costs.length / 2)]) /
-                  2
-                : null;
-            counts = {
-                unit: 'tokens',
-                budget: 4000,
-                tokenizer: input.tokenizer,
-                eligible: measurements['Recall@4000'].eligible,
-                checked: input.samples.length,
-                unknown: measurements['Recall@4000'].eligible - input.samples.length,
-                found: costs.length,
-                censored: input.samples.length - costs.length,
-            };
-        }
-
-        metrics[name] = {
-            status: input.status,
-            value,
-            ...counts,
-            max_penalty: weight,
-            penalty: value === null ? null : weight * penaltyFraction(name, value),
-            explanation: input.explanation,
-        };
     }
 
-    const known = Object.values(metrics).filter(
-        (metric) => metric.penalty !== null && metric.unknown === 0,
+    const found = input.samples.filter(({tokens}) => tokens !== null).length;
+
+    return {
+        unit: 'tokens',
+        budget: 4000,
+        tokenizer: input.tokenizer,
+        eligible: recall.eligible,
+        checked: input.samples.length,
+        unknown: recall.eligible - input.samples.length,
+        found,
+        censored: input.samples.length - found,
+    };
+}
+
+function metricValue(name, input) {
+    if (name !== 'TTC') {
+        return input.status === 'measured' ? input.numerator / input.denominator : null;
+    }
+
+    const costs = input.samples
+        .flatMap(({tokens}) => (tokens === null ? [] : [tokens]))
+        .sort((a, b) => a - b);
+
+    if (!costs.length) {
+        return null;
+    }
+
+    return (costs[Math.floor((costs.length - 1) / 2)] + costs[Math.floor(costs.length / 2)]) / 2;
+}
+
+function valueRange(name, counts, value) {
+    if (name === 'TTC') {
+        if (value === null || counts.unknown > 0) {
+            return null;
+        }
+
+        return {min: value, max: value};
+    }
+
+    if (!counts.eligible) {
+        return null;
+    }
+
+    return {
+        min: counts.numerator / counts.eligible,
+        max: (counts.numerator + counts.unknown) / counts.eligible,
+    };
+}
+
+function assessMetric(name, input, recall) {
+    const weight = WEIGHTS[name];
+    const value = metricValue(name, input);
+    const counts = metricCounts(name, input, recall);
+    const range = valueRange(name, counts, value);
+    let penaltyRange = {min: 0, max: weight};
+
+    if (range !== null) {
+        const first = weight * penaltyFraction(name, range.min);
+        const last = weight * penaltyFraction(name, range.max);
+        penaltyRange = {min: Math.min(first, last), max: Math.max(first, last)};
+    }
+
+    return {
+        status: input.status,
+        value,
+        ...counts,
+        value_range: range,
+        max_penalty: weight,
+        penalty: value === null ? null : weight * penaltyFraction(name, value),
+        penalty_range: penaltyRange,
+        explanation: input.explanation,
+    };
+}
+
+function assessQuality(measurements) {
+    const metrics = Object.fromEntries(
+        Object.keys(WEIGHTS).map((name) => [
+            name,
+            assessMetric(name, measurements[name], measurements['Recall@4000']),
+        ]),
     );
-    const measuredWeight = known.reduce((sum, metric) => sum + metric.max_penalty, 0);
-    const maximum = Math.max(0, 100 - known.reduce((sum, metric) => sum + metric.penalty, 0));
-    const dqs = measuredWeight === 100 ? maximum : null;
+    const values = Object.values(metrics);
+    const measuredWeight = values
+        .filter((metric) => metric.penalty !== null)
+        .reduce((sum, metric) => sum + metric.max_penalty, 0);
+    const completeWeight = values
+        .filter((metric) => metric.penalty_range.min === metric.penalty_range.max)
+        .reduce((sum, metric) => sum + metric.max_penalty, 0);
+    const minimum = Math.max(
+        0,
+        100 - values.reduce((sum, metric) => sum + metric.penalty_range.max, 0),
+    );
+    const maximum = Math.max(
+        0,
+        100 - values.reduce((sum, metric) => sum + metric.penalty_range.min, 0),
+    );
+    const dqs = minimum === maximum ? minimum : null;
+    const tier = tierFor(minimum) === tierFor(maximum) ? tierFor(minimum) : null;
 
     return {
         scoring_version: 'dqs-v1',
+        bounds_version: 'inventory-v1',
         dqs,
-        tier: tierFor(dqs),
+        tier,
+        tier_range: {min: tierFor(minimum), max: tierFor(maximum)},
         measured_weight: measuredWeight,
-        score_range: {min: Math.max(0, maximum - (100 - measuredWeight)), max: maximum},
+        complete_weight: completeWeight,
+        score_range: {min: minimum, max: maximum},
         metrics,
     };
 }
 
-export function prepareQuality(data, retrieval, evidenceLimit = 3) {
+function auditBlockers(data) {
+    const blockers = data.audit?.blockers ?? {};
+
+    if (!blockers || typeof blockers !== 'object' || Array.isArray(blockers)) {
+        throw new Error('audit.blockers must be an object keyed by metric name');
+    }
+
+    for (const [name, blocker] of Object.entries(blockers)) {
+        if (!Object.hasOwn(WEIGHTS, name)) {
+            throw new Error(`Unknown blocker metric: ${name}`);
+        }
+
+        if (
+            !blocker ||
+            typeof blocker.reason !== 'string' ||
+            !blocker.reason.trim() ||
+            typeof blocker.evidence !== 'string' ||
+            !blocker.evidence.trim()
+        ) {
+            throw new Error(
+                `audit.blockers.${name} requires a concrete reason and evidence of the constraint or attempted check`,
+            );
+        }
+    }
+
+    return blockers;
+}
+
+function completionCheck(name, input, recall, blocker) {
+    const counts = metricCounts(name, input, recall);
+    const checked = counts.checked ?? counts.denominator;
+    const result = {checked, eligible: counts.eligible};
+
+    if (input.status === 'not_applicable') {
+        return {...result, status: 'not_applicable', reason: input.explanation};
+    }
+
+    if (counts.eligible > 0 && checked === counts.eligible) {
+        return {...result, status: 'complete'};
+    }
+
+    if (blocker) {
+        return {...result, status: 'blocked', reason: blocker.reason, evidence: blocker.evidence};
+    }
+
+    return {...result, status: checked ? 'partial' : 'not_run', reason: input.explanation};
+}
+
+function auditCompletion(data, measurements, mode) {
+    if (!['full', 'short'].includes(mode)) {
+        throw new Error('mode must be full or short');
+    }
+
+    const blockers = auditBlockers(data);
+    const checks = Object.fromEntries(
+        Object.keys(WEIGHTS).map((name) => [
+            name,
+            completionCheck(name, measurements[name], measurements['Recall@4000'], blockers[name]),
+        ]),
+    );
+    const remaining = Object.keys(checks).filter(
+        (name) => !['complete', 'not_applicable'].includes(checks[name].status),
+    );
+    let status = 'complete';
+
+    if (remaining.length) {
+        status = remaining.every((name) => checks[name].status === 'blocked')
+            ? 'blocked'
+            : 'incomplete';
+    }
+
+    if (mode === 'short') {
+        status = 'short';
+    }
+
+    return {mode, status, checks, remaining};
+}
+
+export function prepareQuality(
+    data,
+    retrieval,
+    evidenceLimit = 3,
+    mode = data.audit?.mode ?? 'full',
+) {
     if (!Number.isInteger(evidenceLimit) || evidenceLimit < 1 || evidenceLimit > 100) {
         throw new Error('evidence-limit must be an integer between 1 and 100');
     }
@@ -180,13 +329,19 @@ export function prepareQuality(data, retrieval, evidenceLimit = 3) {
         rate(name, result.metrics[name], rows, eligible, evidenceLimit, reason, inapplicable);
     const measurements = {
         FCR: makeRate('FCR', verified, expected.length, 'No verified required facts.'),
-        ERR: makeRate('ERR', documented, claims.length, 'No verified documented claims.'),
+        ERR: makeRate(
+            'ERR',
+            documented,
+            claims.length,
+            'No verified documented claims.',
+            noApplicableFacts(data.facts, claims),
+        ),
         CCR: makeRate(
             'CCR',
             verified.filter((row) => row.condition),
             conditions.length,
             'No verified applicable conditions.',
-            data.facts.length > 0 && conditions.length === 0,
+            noApplicableFacts(data.facts, conditions),
         ),
         EPR: makeRate(
             'EPR',
@@ -218,6 +373,8 @@ export function prepareQuality(data, retrieval, evidenceLimit = 3) {
     }));
 
     const correct = data.facts.filter((row) => row.status === 'CORRECT');
+    const retrievalEligible =
+        correct.length + data.facts.filter((row) => row.status === 'UNKNOWN').length;
     const tokenizer = /^(cl100k_base|o200k_base)(?:\s|$)/.exec(
         String(result.retrieval?.protocol.tokenizer ?? ''),
     )?.[1];
@@ -242,17 +399,29 @@ export function prepareQuality(data, retrieval, evidenceLimit = 3) {
         'Recall@4000',
         searchMetric,
         correct,
-        correct.length,
+        retrievalEligible,
         evidenceLimit,
         searchReason,
+        supported && retrievalEligible === 0,
     );
+    let costStatus = found ? 'measured' : 'not_measured';
+    let costExplanation = searchReason;
+
+    if (supported) {
+        costExplanation = `${found}/${correct.length} verified correct facts found within 4000 tokens; ${retrievalEligible - correct.length} unverified facts may change the eligible population. Misses remain censored.`;
+    }
+
+    if (supported && retrievalEligible === 0) {
+        costStatus = 'not_applicable';
+        costExplanation =
+            'Completed retrieval has no correct or unverified facts eligible for correct-only TTC.';
+    }
+
     measurements.TTC = {
-        status: found ? 'measured' : 'not_measured',
+        status: costStatus,
         samples,
         tokenizer: tokenizer ?? 'cl100k_base',
-        explanation: supported
-            ? `${found}/${correct.length} correct facts found within 4000 tokens; misses remain censored.`
-            : searchReason,
+        explanation: costExplanation,
         evidence: found
             ? correct
                   .filter((row) => costs.get(row.id) !== null && costs.get(row.id) <= 4000)
@@ -273,7 +442,8 @@ export function prepareQuality(data, retrieval, evidenceLimit = 3) {
                 `${data.scope}. Facts: ${result.counts.CORRECT} correct, ${result.counts.CONTRADICTED} contradicted, ${result.counts.MISSING} missing, ${result.counts.AMBIGUOUS} ambiguous, ${result.counts.UNKNOWN} unknown.`,
         ),
         measurements,
-        assessment: assessQuality(measurements),
+        assessment: mode === 'short' ? null : assessQuality(measurements),
+        completion: auditCompletion(data, measurements, mode),
     };
 }
 
@@ -284,13 +454,14 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
             options: {
                 help: {type: 'boolean'},
                 retrieval: {type: 'string'},
+                mode: {type: 'string'},
                 'evidence-limit': {type: 'string', default: '3'},
             },
         });
 
         if (values.help) {
             console.log(
-                'Usage: node quality.mjs ledger.json [--retrieval retrieval.json] [--evidence-limit 3]',
+                'Usage: node quality.mjs ledger.json [--retrieval retrieval.json] [--mode full|short] [--evidence-limit 3]',
             );
         } else {
             if (positionals.length !== 1) {
@@ -299,13 +470,20 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
 
             const data = loadLedger(positionals[0]);
             const retrieval = values.retrieval ? loadJson(values.retrieval) : undefined;
-            process.stdout.write(
-                JSON.stringify(
-                    prepareQuality(data, retrieval, Number(values['evidence-limit'])),
-                    null,
-                    2,
-                ) + '\n',
+            const result = prepareQuality(
+                data,
+                retrieval,
+                Number(values['evidence-limit']),
+                values.mode,
             );
+            process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+
+            if (result.completion.status === 'incomplete') {
+                console.error(
+                    `Full audit incomplete: ${result.completion.remaining.join(', ')}. Complete the checks or record concrete blockers in audit.blockers.`,
+                );
+                process.exitCode = 3;
+            }
         }
     } catch (error) {
         console.error(error.message);
