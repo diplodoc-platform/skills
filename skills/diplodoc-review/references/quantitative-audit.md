@@ -157,9 +157,12 @@ For example, a fact in the synthetic DocuBox fixture can be represented as:
 
 ```json
 {
-  "id": "profile-default", "area": "defaults", "condition": true,
+  "id": "profile-default", "area": "defaults", "condition": false,
+  "unit": {"subject": "profile", "property": "default", "when": {}},
   "statement": "The default profile is Standard", "status": "CORRECT",
   "product": "contract.md:5", "documentation": ["docs/guide.md:3"],
+  "query": "Which profile is used by default?",
+  "gold": [{"path": "docs/guide.md", "start_line": 3, "end_line": 3}],
   "verification": {"kind": "literal", "evidence": "The supplied contract and page state Standard"}
 }
 ```
