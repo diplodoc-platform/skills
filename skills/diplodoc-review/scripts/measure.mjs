@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
-import {resolve} from 'node:path';
+import {readFileSync, realpathSync, statSync} from 'node:fs';
+import {isAbsolute, relative, resolve, sep} from 'node:path';
 import {parseArgs} from 'node:util';
 import {pathToFileURL} from 'node:url';
 
@@ -186,6 +186,53 @@ function uniqueRows(rows, label) {
     }
 }
 
+function validateSemanticLink(row) {
+    const semantic = row.semantic;
+
+    requireValue(
+        ['RELEVANT', 'IRRELEVANT', 'UNKNOWN', 'NOT_APPLICABLE'].includes(semantic?.status),
+        `link ${row.id}: invalid semantic status`,
+    );
+
+    if (['RELEVANT', 'IRRELEVANT'].includes(semantic.status)) {
+        requireValue(
+            row.status === 'VALID',
+            `link ${row.id}: semantic labels need an accessible VALID target`,
+        );
+        requireValue(
+            nonempty(row.source) && nonempty(row.target) && nonempty(row.promise),
+            `link ${row.id}: semantic labels need source, target and promise`,
+        );
+        requireValue(
+            nonempty(semantic.evidence),
+            `link ${row.id}: semantic target evidence is required`,
+        );
+
+        return;
+    }
+
+    requireValue(
+        nonempty(semantic.reason),
+        `link ${row.id}: semantic exclusion reason is required`,
+    );
+}
+
+function validateObservations(rows, name, known, measured) {
+    uniqueRows(rows, name);
+
+    for (const row of rows) {
+        requireValue(known.includes(row.status), `${name} ${row.id}: unknown status`);
+        requireValue(
+            nonempty(measured.includes(row.status) ? row.evidence : row.reason),
+            `${name} ${row.id}: evidence or exclusion reason is required`,
+        );
+
+        if (name === 'links' && row.semantic !== undefined) {
+            validateSemanticLink(row);
+        }
+    }
+}
+
 export function validateLedger(data) {
     requireValue(data?.schema_version === 1, 'schema_version must be 1');
     requireValue(nonempty(data.scope), 'scope must describe the inspected sample');
@@ -234,22 +281,28 @@ export function validateLedger(data) {
         ['examples', ['PASS', 'FAIL', 'NOT_TESTABLE', 'NOT_TESTED'], ['PASS', 'FAIL']],
         ['links', ['VALID', 'BROKEN', 'UNCHECKED', 'RESTRICTED'], ['VALID', 'BROKEN']],
     ]) {
-        uniqueRows(data[name] ?? [], name);
-
-        for (const row of data[name] ?? []) {
-            requireValue(known.includes(row.status), `${name} ${row.id}: unknown status`);
-            requireValue(
-                nonempty(measured.includes(row.status) ? row.evidence : row.reason),
-                `${name} ${row.id}: evidence or exclusion reason is required`,
-            );
-        }
+        validateObservations(data[name] ?? [], name, known, measured);
     }
 
     return data;
 }
 
+export function loadJson(path) {
+    const root = realpathSync(process.cwd());
+    const absolute = realpathSync(resolve(root, path));
+    const local = relative(root, absolute);
+
+    if (isAbsolute(local) || local === '..' || local.startsWith(`..${sep}`)) {
+        throw new Error('JSON inputs must stay within the current working directory');
+    }
+
+    requireValue(statSync(absolute).isFile(), 'JSON input must be a regular file');
+
+    return JSON.parse(readFileSync(absolute, 'utf8'));
+}
+
 export function loadLedger(path) {
-    return validateLedger(JSON.parse(readFileSync(path, 'utf8')));
+    return validateLedger(loadJson(path));
 }
 
 export function summarize(input, retrieval) {
@@ -285,6 +338,9 @@ export function summarize(input, retrieval) {
     const links = data.links ?? [];
     const tested = examples.filter((row) => ['PASS', 'FAIL'].includes(row.status));
     const checked = links.filter((row) => ['VALID', 'BROKEN'].includes(row.status));
+    const semantic = links.filter((row) =>
+        ['RELEVANT', 'IRRELEVANT'].includes(row.semantic?.status),
+    );
     const metrics = {
         FCR: ratio(expected.filter((row) => row.status === 'CORRECT').length, expected.length),
         ERR: ratio(
@@ -294,6 +350,11 @@ export function summarize(input, retrieval) {
         CCR: ratio(conditions.filter((row) => row.status === 'CORRECT').length, conditions.length),
         EPR: ratio(tested.filter((row) => row.status === 'PASS').length, tested.length),
         LHR: ratio(checked.filter((row) => row.status === 'VALID').length, checked.length),
+        'LHR-T': ratio(checked.filter((row) => row.status === 'VALID').length, checked.length),
+        'LHR-S': ratio(
+            semantic.filter((row) => row.semantic.status === 'RELEVANT').length,
+            semantic.length,
+        ),
     };
 
     if (retrieval) {
@@ -363,6 +424,10 @@ export function summarize(input, retrieval) {
         coverage: {
             examples: {checked: tested.length, discovered: examples.length},
             links: {checked: checked.length, discovered: links.length},
+            semantic_links: {
+                checked: semantic.length,
+                discovered: links.filter((row) => row.semantic?.status !== 'NOT_APPLICABLE').length,
+            },
         },
         retrieval: retrieval
             ? {
@@ -408,7 +473,8 @@ export function renderMarkdown(result, maxFindings = 5) {
         ...(recallNames.length ? recallNames : ['Recall@2000', 'Recall@4000', 'Recall@8000']),
         'TTC',
         'EPR',
-        'LHR',
+        'LHR-T',
+        'LHR-S',
     ]) {
         if (name === 'TTC') {
             const ttc = result.retrieval?.ttc;
@@ -438,7 +504,7 @@ export function renderMarkdown(result, maxFindings = 5) {
 
     lines.push(
         '',
-        `Execution coverage: ${result.coverage.examples.checked}/${result.coverage.examples.discovered} examples; link-check coverage: ${result.coverage.links.checked}/${result.coverage.links.discovered} occurrences. Ambiguous: ${result.counts.AMBIGUOUS}; unknown: ${result.counts.UNKNOWN}.`,
+        `Execution coverage: ${result.coverage.examples.checked}/${result.coverage.examples.discovered} examples; technical-link coverage: ${result.coverage.links.checked}/${result.coverage.links.discovered}; semantic-link coverage: ${result.coverage.semantic_links.checked}/${result.coverage.semantic_links.discovered} applicable occurrences. Ambiguous: ${result.counts.AMBIGUOUS}; unknown: ${result.counts.UNKNOWN}.`,
     );
 
     const selected = prioritize(result.findings).slice(0, maxFindings);
@@ -517,7 +583,7 @@ export function renderReport(data, retrieval, maxFindings = 5) {
         '',
         '## 5. Method',
         '',
-        'FCR = correct expected / verified expected; ERR = contradicted / (correct + contradicted) documented; CCR = correct expected conditions / verified expected conditions. UNKNOWN is excluded; AMBIGUOUS reduces coverage. EPR = passed / tested examples; LHR = valid / checked link occurrences. Exclusions remain in the coverage counts.',
+        'FCR = correct expected / verified expected; ERR = contradicted / (correct + contradicted) documented; CCR = correct expected conditions / verified expected conditions. UNKNOWN is excluded; AMBIGUOUS reduces coverage. EPR = passed / tested examples; LHR-T = valid / technically checked link occurrences; LHR-S = relevant / semantically checked applicable occurrences. Semantic labels require the source promise and target evidence. Exclusions remain in the coverage counts.',
         '',
         retrieval
             ? `Retrieval protocol: ${JSON.stringify(retrieval.protocol)}. TTC percentiles: ${JSON.stringify(result.retrieval.ttc)}.`
@@ -565,9 +631,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
             );
 
             const data = loadLedger(positionals[0]);
-            const retrieval = values.retrieval
-                ? JSON.parse(readFileSync(values.retrieval, 'utf8'))
-                : undefined;
+            const retrieval = values.retrieval ? loadJson(values.retrieval) : undefined;
             const result = summarize(data, retrieval);
 
             process.stdout.write(

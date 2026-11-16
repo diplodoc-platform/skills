@@ -2,7 +2,7 @@
 name: diplodoc-review
 description: >
   Use for quantitative technical-documentation audits against product contracts:
-  FCR/ERR/CCR, retrieval Recall/TTC, example EPR and auxiliary link LHR.
+  FCR/ERR/CCR, retrieval Recall/TTC, example EPR, technical/semantic LHR and a declared DQS/tier profile.
   Provides evidence ledgers and JavaScript measurement tools. Use when asked
   to measure documentation quality or apply these metrics. Qualitative content
   and presentation rubrics are optional references. For YFM syntax, project
@@ -13,9 +13,13 @@ description: >
 
 Produce reproducible measurements over an explicit, bounded inventory.
 Keep verified product behavior, document claims, retrieval and execution
-observations separate. The metrics describe that sample, not an overall grade.
+observations separate. Metrics and DQS describe that sample, not automatically
+the whole project.
 
 ## Quantitative audit
+
+If bundled `references/integration.md` exists, read it before measuring and
+follow its reuse/submission instructions. Otherwise keep artifacts local.
 
 Read [quantitative-audit.md](references/quantitative-audit.md) for the ledger
 schema, helper commands and retrieval protocol. Read the relevant sections of
@@ -31,14 +35,14 @@ comparing results; no other reference is required for routine measurement.
    `UNKNOWN`. Search the declared corpus before calling a fact missing.
    Unsupported is unverified; contradiction needs a verified opposing rule in
    the same scope. A stored setting alone does not establish emitted behavior.
-3. **Use the tools.** Run `scripts/measure.mjs` for FCR/ERR/CCR and observed
-   EPR/LHR. When requested and queries/gold are available, run
-   `scripts/retrieve.mjs` once for algorithmic Recall/TTC. Execute helpers
-   without loading their source unless debugging. Reuse existing product checks
-   and yfmlint/build observations. LHR has the lowest priority; do not build a
-   separate link audit to fill it.
+3. **Use the tools.** Run `scripts/measure.mjs` for evidence-backed rates.
+   When queries/gold are available and retrieval is requested, run
+   `scripts/retrieve.mjs` once with a 4000-token budget. Use `scripts/quality.mjs`
+   for portable measurement JSON and DQS/tier. Execute helpers without loading
+   their source unless debugging. Reuse product checks and build/link diagnostics;
+   semantic links require the source promise and target content.
 4. **Report compactly.** Give fractions, unknowns, selection/checked coverage,
-   N/A reasons and evidence for the most consequential corrections. Sort by
+   N/A reasons, DQS/tier or incomplete range, and consequential evidence. Sort by
    reader impact before limiting findings. Keep the ledger as replay evidence
    when requested; avoid repeating every record in prose.
 
