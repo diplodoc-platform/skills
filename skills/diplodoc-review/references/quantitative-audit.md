@@ -1,14 +1,12 @@
 # Quantitative product-contract audit
 
-Use this mode to assess existing documentation directly against the product.
-It produces numbers conditional on a declared inventory and verification,
-without practical tasks for test agents or new LLM trials. Consult
-[measurements.md](measurements.md) when interpreting saved runs or attributing
-differences between candidates.
+Assess documentation against verified product contracts and a declared inventory.
+Use local checks without new LLM trials. Consult
+[measurements.md](measurements.md) for saved-run interpretation and comparisons.
 
 Prioritize fact correctness, condition coverage and meaningful example checks.
-Link quality has technical (LHR-T) and semantic (LHR-S) components. Reuse
-build diagnostics and inspect a declared sample of source promises/targets.
+Full mode completes every metric phase in the declared scope. Link quality
+has technical (LHR-T) and semantic (LHR-S) components; preserve both denominators.
 
 ## Procedure
 
@@ -41,13 +39,14 @@ build diagnostics and inspect a declared sample of source promises/targets.
    one successful configuration does not establish all precedence rules. Check
    string/numeric limits and CLI/config conflicts when both forms are public.
    Preserve a false universal claim even if a narrower statement is correct.
-5. Calculate FCR/ERR/CCR and link rates with `measure.mjs`. If requested, measure search with
-   `retrieve.mjs`, verify safe examples using the existing product and collect
-   link observations using the existing linter/build and target evidence. Missing
-   measurements stay N/A; `quality.mjs` prepares the versioned DQS profile.
-6. Produce the compact report described below. Explain scope, annotation and
-   excluded observations once. A complete ledger is evidence, not a reason to
-   duplicate it in prose or paste computation scripts into the main report.
+5. Calculate all facets: FCR/ERR/CCR, retrieval Recall/TTC, example EPR and
+   technical/semantic LHR. Prepare questions/gold, execute safe example assertions
+   and inventory links before aggregation. Reuse native build diagnostics; a
+   warnings list alone is not a checked-link denominator.
+6. Run `quality.mjs` and finish its `completion.remaining` checks. The full audit
+   is complete only when every phase is complete or explicitly inapplicable;
+   remaining work with evidenced constraints is blocked. `not_run` and `partial`
+   are unfinished, never a successful full audit. Give the compact report below.
 
 A request to perform quantitative measurements authorizes the relevant local
 calculations and isolated product checks within the stated restrictions. It
@@ -72,8 +71,9 @@ output. The deliverable is a report, not a new audit framework.
    workspace and return summaries plus failures to the model. Reuse installed
    product exports/tests instead of constructing a general-purpose harness.
 3. For each example record the behavioral assertion, not just exit status.
-   Reuse existing yfmlint/build link findings; leave LHR N/A when a checked
-   denominator is unavailable instead of building collection machinery.
+   Inventory source-page link occurrences once with `links.mjs`, reuse build
+   findings and inspect target content. Keep the fixed source-page scope and
+   untested occurrences visible; do not collect only known broken links.
 4. Freeze queries/gold, run retrieval once, then aggregate and generate the
    report with the commands below. Read summaries instead of full JSON ledgers,
    search results or bundled script source. For a single-file deliverable use
@@ -87,6 +87,24 @@ output. The deliverable is a report, not a new audit framework.
    rechecking the affected observations. Do not narrow coverage to meet a time
    budget, hide UNKNOWNs or replace semantic assertions with exit=0.
 
+## Readiness
+
+Before expensive checks, compare documented prerequisites with the actual product
+snapshot and verify helpers with `retrieve.mjs --check` and `links.mjs --check`.
+The helpers resolve dependencies from the audit workspace or skill installation.
+Reuse installed `js-tiktoken`/`cheerio`; full-mode setup may install pinned copies
+in the temporary workspace when network/package installation is allowed:
+
+```sh
+npm install --prefix . --no-save --package-lock=false --ignore-scripts \
+  --no-audit --no-fund js-tiktoken@1.0.21 cheerio@1.0.0
+```
+
+Keep audited project dependencies unchanged. An installation restriction, failed
+setup or unavailable required product version is a blocker with actual evidence.
+Unprepared questions, gold or link inventories are unfinished work. Do not fetch
+new product versions silently or remove difficult cases after labeling.
+
 ## Ledger contract, version 1
 
 The helpers use Node.js 18.19+ and do not mutate inputs or execute document code.
@@ -94,6 +112,11 @@ They print results to stdout. Give `measure.mjs` a JSON object with:
 
 - `schema_version: 1`, `scope`: a nonempty description of the inspected sample;
   optional `revisions` records source and publication versions.
+- Optional `audit`: `{mode: "full"|"short", blockers: {"TTC": {reason, evidence}}}`.
+  Full is the default. Blocker keys are metric names from the DQS table; cite an
+  attempted check, access restriction, version probe or explicit user constraint.
+  A convenience choice such as "not requested" is not a blocker. Each affected
+  metric needs its own entry; blockers do not remove unknowns from score bounds.
 - `facts`: normalized public-fact records. Required fields: `id`, `area`,
   `statement`, boolean `condition`, `status`, `product` source location,
   `documentation` location array, and `verification: {kind, evidence}`.
@@ -152,6 +175,8 @@ intended corpus; record whether source Markdown, unpublished files, languages,
 frontmatter and includes are included. The helper indexes raw file content,
 without executing templates or expanding includes, and records file hashes.
 
+In full mode create a natural reader question from each verified contract,
+without copying the answer or selecting wording after seeing retrieval rankings.
 Each CORRECT/CONTRADICTED fact needs a fixed `query` and nonempty `gold` array:
 `[{"path":"docs/guide.md","start_line":3,"end_line":3}]`. Lines are inclusive.
 Each range must include the full statement with its qualification. An alternative
@@ -181,20 +206,19 @@ unconditional percentile is inferred automatically.
 
 The default tokenizer is `cl100k_base`, using an available `js-tiktoken`
 installation (tested with 1.0.21). It has no automatic network/install fallback.
-Use `--tokenizer-module` for an existing module. If necessary and authorized,
-install a pinned version into the task's temporary directory with scripts
-disabled, without changing project dependencies. `--tokenizer unicode-words`
+Use `--tokenizer-module` for an existing module. Use the isolated setup above when needed and allowed. `--tokenizer unicode-words`
 is a dependency-free lexical diagnostic; its counts are **not BPE/model tokens**
 and cannot be compared to cl100k budgets or used silently as a substitute.
 
 ```sh
 node /path/to/diplodoc-review/scripts/retrieve.mjs ledger.json \
-  --root /path/to/project --tokenizer-module /path/to/js-tiktoken/dist/index.js \
-  --budgets 2000,4000,8000 > retrieval.json
+  --root /path/to/project --budgets 4000 > retrieval.json
+node /path/to/diplodoc-review/scripts/links.mjs pages.json \
+  --root /path/to/existing-build > links.json
 node /path/to/diplodoc-review/scripts/measure.mjs ledger.json \
   --retrieval retrieval.json --format report > report.md
 node /path/to/diplodoc-review/scripts/quality.mjs ledger.json \
-  --retrieval retrieval.json > quality.json
+  --mode full --retrieval retrieval.json > quality.json
 ```
 
 Run these in the temporary directory. Ledger/retrieval JSON inputs must resolve
@@ -223,6 +247,25 @@ document line through a shell or inherit unnecessary secrets. Exclude unavailabl
 services, credentials and environments as NOT_TESTABLE. State tested/candidate
 coverage and any difference from the normal product configuration.
 
+`links.mjs` reads an explicit manifest such as
+`{"pages":["ru/settings.html"],"base_url":"https://example.org/docs/"}`.
+Choose pages before inspecting findings. Give the actual publication root when
+known; otherwise the helper uses a synthetic build prefix and leaves targets
+outside it unchecked. It parses existing built HTML with `cheerio`, including
+Diplodoc's embedded article state, and respects `<base href>`. Exact local files,
+HTML routes and anchors are checked offline; external or unreadable targets stay
+UNCHECKED. Contact URIs and hidden generated permalinks are listed/excluded by
+the declared protocol. Unsupported unrendered page formats fail explicitly.
+
+Retain the manifest and inventory hashes; copy its `links` array to the ledger.
+Occurrence IDs preserve repeated hrefs at different positions. Reuse an inventory
+only while source/target hashes and publication protocol match. `promise` is a
+candidate source context, and semantic observations start UNKNOWN. Inspect the
+actual target, record RELEVANT/IRRELEVANT with evidence, or NOT_APPLICABLE with a
+specific reason for links without an information promise. Inspect external
+links with available permitted tools or record a blocker; do not infer success
+from their presence. Unknown and inaccessible links remain in coverage counts.
+
 For LHR-T, reuse yfmlint/build results with a checked-occurrence denominator;
 no diagnostics alone does not prove link health. For LHR-S, compare each source
 promise with the resolved target's actual content in the same publication.
@@ -238,6 +281,11 @@ problem-first excerpts per metric (up to 2000 characters each); use
 `--evidence-limit` to change that limit and retain the full ledger for replay.
 An integration adapter may consume `measurements`/`explanation` and add its own
 project/snapshot envelope. This helper performs no submission or network calls.
+For valid inputs it emits JSON even when checks remain unfinished. Full mode
+exits 3 for unfinished checks, 0 for completed
+or explicitly blocked audits, and 2 for invalid inputs. Short mode (`--mode short`)
+emits no DQS assessment. A blocked run must be reported as blocked, with its
+remaining checks and evidence; do not describe it as a completed scored audit.
 
 ## Compact output
 

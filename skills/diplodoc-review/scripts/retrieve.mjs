@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import {createHash} from 'node:crypto';
 import {readFileSync, realpathSync} from 'node:fs';
+import {createRequire} from 'node:module';
 import {dirname, isAbsolute, relative, resolve} from 'node:path';
 import {parseArgs} from 'node:util';
 import {fileURLToPath, pathToFileURL} from 'node:url';
@@ -33,9 +34,17 @@ async function tokenizerFor(name, modulePath) {
     let moduleURL;
 
     try {
-        moduleURL = modulePath
-            ? pathToFileURL(resolve(modulePath)).href
-            : import.meta.resolve('js-tiktoken');
+        if (modulePath) {
+            moduleURL = pathToFileURL(resolve(modulePath)).href;
+        } else {
+            try {
+                moduleURL = pathToFileURL(
+                    createRequire(resolve(process.cwd(), 'package.json')).resolve('js-tiktoken'),
+                ).href;
+            } catch {
+                moduleURL = import.meta.resolve('js-tiktoken');
+            }
+        }
         module = await import(moduleURL);
     } catch {
         throw new Error(
@@ -390,6 +399,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
             allowPositionals: true,
             options: {
                 help: {type: 'boolean'},
+                check: {type: 'boolean'},
                 root: {type: 'string'},
                 tokenizer: {type: 'string', default: 'cl100k_base'},
                 'tokenizer-module': {type: 'string'},
@@ -400,8 +410,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
 
         if (values.help) {
             console.log(
-                'Usage: node retrieve.mjs ledger.json --root /corpus/root [--tokenizer cl100k_base|unicode-words] [--tokenizer-module /path/to/js-tiktoken/dist/index.js] [--budgets 2000,4000,8000] [--chunk-tokens 512]',
+                'Usage: node retrieve.mjs ledger.json --root /corpus/root [--tokenizer cl100k_base|unicode-words] [--tokenizer-module /path/to/js-tiktoken/dist/index.js] [--budgets 2000,4000,8000] [--chunk-tokens 512]; use --check to verify the tokenizer without a ledger',
             );
+        } else if (values.check) {
+            const tokenizer = await tokenizerFor(values.tokenizer, values['tokenizer-module']);
+            console.log(JSON.stringify({ready: true, tokenizer: tokenizer.description}));
         } else {
             requireValue(
                 positionals.length === 1 && values.root,
