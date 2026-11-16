@@ -220,9 +220,11 @@ export async function collectLinks(input, root) {
         }
 
         seenPages.add(page.file);
+
         const pageURL = new URL(path.split('/').map(encodeURIComponent).join('/'), base);
         const effectiveURL = page.base ? new URL(page.base, pageURL) : pageURL;
         const occurrences = page.$('a[href]').not('.yfm-anchor[aria-hidden="true"]').toArray();
+
         pages.push({path, sha256: page.sha256, occurrences: occurrences.length});
 
         for (const [index, node] of occurrences.entries()) {
@@ -307,6 +309,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
             );
         } else if (values.check) {
             const parser = await parserFor();
+
             console.log(
                 JSON.stringify({
                     ready: true,
@@ -321,6 +324,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
             }
 
             const result = await collectLinks(loadJson(positionals[0]), values.root);
+
             process.stdout.write(JSON.stringify(result, null, 2) + '\n');
         }
     } catch (error) {

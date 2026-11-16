@@ -157,6 +157,7 @@ function assessMetric(name, input, recall) {
         }
     } else if (counts.eligible > 0) {
         const worst = (counts.numerator + (name === 'ERR' ? counts.unknown : 0)) / counts.eligible;
+
         penalty = weight * penaltyFraction(name, worst);
     }
 
@@ -404,6 +405,7 @@ export function prepareQuality(
             Array.isArray(data.links) && semanticEligible.length === 0,
         ),
     };
+
     measurements['LHR-S'].evidence = selectEvidence(semantic, evidenceLimit).map((row) => ({
         source: excerpt(row.source),
         target: excerpt(row.target),
@@ -434,6 +436,7 @@ export function prepareQuality(
     const searchMetric = supported
         ? result.retrieval.correct_only_recall['4000']
         : {numerator: 0, denominator: 0};
+
     measurements['Recall@4000'] = rate(
         'Recall@4000',
         searchMetric,
@@ -443,6 +446,7 @@ export function prepareQuality(
         searchReason,
         supported && retrievalEligible === 0,
     );
+
     let costStatus = found ? 'measured' : 'not_measured';
     let costExplanation = searchReason;
 

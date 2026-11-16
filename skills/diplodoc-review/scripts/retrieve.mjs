@@ -46,6 +46,7 @@ async function tokenizerFor(name, modulePath) {
                 moduleURL = import.meta.resolve('js-tiktoken');
             }
         }
+
         module = await import(moduleURL);
     } catch {
         throw new Error(
@@ -415,6 +416,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
             );
         } else if (values.check) {
             const tokenizer = await tokenizerFor(values.tokenizer, values['tokenizer-module']);
+
             console.log(JSON.stringify({ready: true, tokenizer: tokenizer.description}));
         } else {
             requireValue(

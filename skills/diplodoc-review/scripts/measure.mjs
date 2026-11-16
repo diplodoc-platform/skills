@@ -252,6 +252,7 @@ function validateObservations(rows, name, known, measured) {
 
 export function normalizedUnit(row) {
     const unit = row.unit;
+
     requireValue(
         unit &&
             nonempty(unit.subject) &&
@@ -278,6 +279,7 @@ export function validateLedger(data) {
     requireValue(data?.schema_version === 1, 'schema_version must be 1');
     requireValue(nonempty(data.scope), 'scope must describe the inspected sample');
     uniqueRows(data.facts, 'facts');
+
     const units = new Set();
 
     for (const row of data.facts) {
@@ -296,6 +298,7 @@ export function validateLedger(data) {
 
         if (row.unit !== undefined) {
             const key = normalizedUnit(row);
+
             requireValue(!units.has(key), `${name}: duplicate normalized unit`);
             units.add(key);
         }

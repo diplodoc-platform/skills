@@ -58,17 +58,22 @@ export function validateSnapshot(snapshot) {
         ),
         'source_snapshot accepts only source manifests and environment versions.',
     );
+
     const result = {version: 1};
 
     for (const group of SOURCE_GROUPS) {
         const rows = snapshot[group] ?? [];
+
         requireValue(Array.isArray(rows), `source_snapshot.${group} must be an array.`);
+
         const paths = new Set();
 
         result[group] = rows
             .map((row) => {
                 requireValue(row && typeof row === 'object', 'Invalid source manifest entry.');
+
                 const path = sourcePath(row.path);
+
                 requireValue(!paths.has(path), `Duplicate ${group} source: ${path}`);
                 requireValue(
                     Object.keys(row).every((key) => key === 'path' || key === 'sha256') &&
@@ -94,6 +99,7 @@ export function validateSnapshot(snapshot) {
 
 function inside(root, path) {
     const local = relative(root, path);
+
     requireValue(
         !isAbsolute(local) && local !== '..' && !local.startsWith(`..${sep}`),
         'Source files and symlinks must stay inside their declared root.',
@@ -115,7 +121,9 @@ function rejectDangling(path) {
 
 function fingerprint(root, path) {
     const absolute = resolve(root, sourcePath(path));
+
     inside(root, absolute);
+
     let canonical;
 
     try {
@@ -126,6 +134,7 @@ function fingerprint(root, path) {
         }
 
         rejectDangling(absolute);
+
         let parent = dirname(absolute);
 
         while (parent !== root) {
@@ -164,6 +173,7 @@ export function captureSnapshot(manifest, roots) {
         'Source manifest accepts documentation, product, external and environment only.',
     );
     versionTokens(manifest.environment === undefined ? {} : manifest.environment);
+
     const snapshot = {
         version: 1,
         environment: {...manifest.environment, node: process.versions.node},
@@ -171,8 +181,11 @@ export function captureSnapshot(manifest, roots) {
 
     for (const group of SOURCE_GROUPS) {
         const paths = manifest[group] ?? [];
+
         requireValue(Array.isArray(paths), `${group} source manifest must be an array.`);
+
         const root = realpathSync(roots[group] ?? process.cwd());
+
         requireValue(statSync(root).isDirectory(), `Invalid ${group} source root.`);
         snapshot[group] = paths.map((path) => fingerprint(root, path));
     }
@@ -202,8 +215,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
                 positionals.length === 1 && values.manifest,
                 'Provide ledger.json and --manifest sources.json.',
             );
+
             const data = loadJson(positionals[0]);
             const manifest = loadJson(values.manifest);
+
             data.source_snapshot = captureSnapshot(manifest, {
                 documentation: values.root,
                 product: values['product-root'] ?? values.root,

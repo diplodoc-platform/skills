@@ -17,11 +17,13 @@ function dependencies(row, snapshot) {
             Object.keys(declared).every((group) => SOURCE_GROUPS.some((known) => known === group)),
         `${row.id}: dependencies must name source namespaces.`,
     );
+
     const result = {};
     let count = 0;
 
     for (const group of SOURCE_GROUPS) {
         const paths = declared[group] ?? [];
+
         requireValue(Array.isArray(paths), `${row.id}: dependency paths must be arrays.`);
         requireValue(new Set(paths).size === paths.length, `${row.id}: duplicate dependencies.`);
 
@@ -54,6 +56,7 @@ function inputHash(declared, snapshot, groups = SOURCE_GROUPS, includeEnvironmen
     for (const group of groups) {
         const paths = declared[group] ?? [];
         const known = new Map(snapshot[group].map((row) => [row.path, row.sha256]));
+
         selected[group] = paths.includes('*')
             ? snapshot[group]
             : paths.map((path) => ({path, sha256: known.get(path) ?? null}));
@@ -160,6 +163,7 @@ function buildGuardedProfile(data, measurements, protocol) {
 
     for (const row of data.facts) {
         const key = normalizedUnit(row);
+
         requireValue(!units.has(key), `Duplicate normalized fact unit: ${row.id}`);
         units.add(key);
         checks[`fact:${row.id}`] = makeCheck(
@@ -205,6 +209,7 @@ function buildGuardedProfile(data, measurements, protocol) {
     }
 
     const measured = measurementResults(measurements);
+
     checks.retrieval = makeCheck(
         'retrieval',
         {id: 'retrieval'},
@@ -212,6 +217,7 @@ function buildGuardedProfile(data, measurements, protocol) {
         {method: method(protocol)},
         {recall: measured['Recall@4000'], ttc: measured.TTC},
     );
+
     const inventoryHash = ledgerHash({
         scope: data.scope,
         facts: sorted(
@@ -261,6 +267,7 @@ export function checkBaseline(result, baseline) {
 
     const current = result.profile;
     const previous = baseline.profile;
+
     requireValue(
         current?.guarded && previous?.guarded,
         'Protected replay requires source_snapshot and normalized units; migrate legacy arithmetic with --recalibrate.',
@@ -326,7 +333,9 @@ function checkOne(key, old, next, previous, current) {
         const originChanged = record.origin
             ? changed(record, previous, current, SOURCE_GROUPS, true)
             : changed(record, previous, current);
+
         requireValue(originChanged, `${key}: unchanged origin cannot add or remove a check.`);
+
         return;
     }
 
