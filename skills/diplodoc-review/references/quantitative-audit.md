@@ -197,7 +197,9 @@ node /path/to/diplodoc-review/scripts/quality.mjs ledger.json \
   --retrieval retrieval.json > quality.json
 ```
 
-Run these in the temporary directory. `measure.mjs` without retrieval evidence
+Run these in the temporary directory. Ledger/retrieval JSON inputs must resolve
+to regular files within the current directory or its descendants; symlinks
+cannot escape that boundary. `measure.mjs` without retrieval evidence
 still computes FCR/ERR/CCR/EPR/LHR. `--format markdown` gives a shorter summary;
 `--format json` gives machine-readable metrics. The full report's JSON appendix
 contains the ledger and retrieval objects for arithmetic replay; replay does

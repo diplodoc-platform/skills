@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
-import {resolve} from 'node:path';
+import {readFileSync, realpathSync, statSync} from 'node:fs';
+import {isAbsolute, relative, resolve, sep} from 'node:path';
 import {parseArgs} from 'node:util';
 import {pathToFileURL} from 'node:url';
 
@@ -186,6 +186,53 @@ function uniqueRows(rows, label) {
     }
 }
 
+function validateSemanticLink(row) {
+    const semantic = row.semantic;
+
+    requireValue(
+        ['RELEVANT', 'IRRELEVANT', 'UNKNOWN', 'NOT_APPLICABLE'].includes(semantic?.status),
+        `link ${row.id}: invalid semantic status`,
+    );
+
+    if (['RELEVANT', 'IRRELEVANT'].includes(semantic.status)) {
+        requireValue(
+            row.status === 'VALID',
+            `link ${row.id}: semantic labels need an accessible VALID target`,
+        );
+        requireValue(
+            nonempty(row.source) && nonempty(row.target) && nonempty(row.promise),
+            `link ${row.id}: semantic labels need source, target and promise`,
+        );
+        requireValue(
+            nonempty(semantic.evidence),
+            `link ${row.id}: semantic target evidence is required`,
+        );
+
+        return;
+    }
+
+    requireValue(
+        nonempty(semantic.reason),
+        `link ${row.id}: semantic exclusion reason is required`,
+    );
+}
+
+function validateObservations(rows, name, known, measured) {
+    uniqueRows(rows, name);
+
+    for (const row of rows) {
+        requireValue(known.includes(row.status), `${name} ${row.id}: unknown status`);
+        requireValue(
+            nonempty(measured.includes(row.status) ? row.evidence : row.reason),
+            `${name} ${row.id}: evidence or exclusion reason is required`,
+        );
+
+        if (name === 'links' && row.semantic !== undefined) {
+            validateSemanticLink(row);
+        }
+    }
+}
+
 export function validateLedger(data) {
     requireValue(data?.schema_version === 1, 'schema_version must be 1');
     requireValue(nonempty(data.scope), 'scope must describe the inspected sample');
@@ -234,52 +281,28 @@ export function validateLedger(data) {
         ['examples', ['PASS', 'FAIL', 'NOT_TESTABLE', 'NOT_TESTED'], ['PASS', 'FAIL']],
         ['links', ['VALID', 'BROKEN', 'UNCHECKED', 'RESTRICTED'], ['VALID', 'BROKEN']],
     ]) {
-        uniqueRows(data[name] ?? [], name);
-
-        for (const row of data[name] ?? []) {
-            requireValue(known.includes(row.status), `${name} ${row.id}: unknown status`);
-            requireValue(
-                nonempty(measured.includes(row.status) ? row.evidence : row.reason),
-                `${name} ${row.id}: evidence or exclusion reason is required`,
-            );
-
-            if (name === 'links' && row.semantic !== undefined) {
-                const semantic = row.semantic;
-                requireValue(
-                    ['RELEVANT', 'IRRELEVANT', 'UNKNOWN', 'NOT_APPLICABLE'].includes(
-                        semantic?.status,
-                    ),
-                    `link ${row.id}: invalid semantic status`,
-                );
-
-                if (['RELEVANT', 'IRRELEVANT'].includes(semantic.status)) {
-                    requireValue(
-                        row.status === 'VALID',
-                        `link ${row.id}: semantic labels need an accessible VALID target`,
-                    );
-                    requireValue(
-                        nonempty(row.source) && nonempty(row.target) && nonempty(row.promise),
-                        `link ${row.id}: semantic labels need source, target and promise`,
-                    );
-                    requireValue(
-                        nonempty(semantic.evidence),
-                        `link ${row.id}: semantic target evidence is required`,
-                    );
-                } else {
-                    requireValue(
-                        nonempty(semantic.reason),
-                        `link ${row.id}: semantic exclusion reason is required`,
-                    );
-                }
-            }
-        }
+        validateObservations(data[name] ?? [], name, known, measured);
     }
 
     return data;
 }
 
+export function loadJson(path) {
+    const root = realpathSync(process.cwd());
+    const absolute = realpathSync(resolve(root, path));
+    const local = relative(root, absolute);
+
+    if (isAbsolute(local) || local === '..' || local.startsWith(`..${sep}`)) {
+        throw new Error('JSON inputs must stay within the current working directory');
+    }
+
+    requireValue(statSync(absolute).isFile(), 'JSON input must be a regular file');
+
+    return JSON.parse(readFileSync(absolute, 'utf8'));
+}
+
 export function loadLedger(path) {
-    return validateLedger(JSON.parse(readFileSync(path, 'utf8')));
+    return validateLedger(loadJson(path));
 }
 
 export function summarize(input, retrieval) {
@@ -608,9 +631,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
             );
 
             const data = loadLedger(positionals[0]);
-            const retrieval = values.retrieval
-                ? JSON.parse(readFileSync(values.retrieval, 'utf8'))
-                : undefined;
+            const retrieval = values.retrieval ? loadJson(values.retrieval) : undefined;
             const result = summarize(data, retrieval);
 
             process.stdout.write(

@@ -1,10 +1,9 @@
 #!/usr/bin/env node
-import {readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {parseArgs} from 'node:util';
 import {pathToFileURL} from 'node:url';
 
-import {loadLedger, summarize} from './measure.mjs';
+import {loadJson, loadLedger, summarize} from './measure.mjs';
 
 const WEIGHTS = {
     FCR: 20,
@@ -50,9 +49,14 @@ function evidenceFor(row) {
 
 function rate(name, metric, rows, eligible, evidenceLimit, absentReason, inapplicable = false) {
     const measured = metric.denominator > 0;
+    let status = inapplicable ? 'not_applicable' : 'not_measured';
+
+    if (measured) {
+        status = 'measured';
+    }
 
     return {
-        status: measured ? 'measured' : inapplicable ? 'not_applicable' : 'not_measured',
+        status,
         numerator: metric.numerator,
         denominator: metric.denominator,
         eligible,
@@ -61,6 +65,33 @@ function rate(name, metric, rows, eligible, evidenceLimit, absentReason, inappli
             : absentReason,
         evidence: measured ? selectEvidence(rows, evidenceLimit).map(evidenceFor) : [],
     };
+}
+
+function penaltyFraction(name, value) {
+    if (name === 'ERR') {
+        return Math.min(1, value / 0.2);
+    }
+
+    if (name === 'TTC') {
+        return Math.max(0, Math.min(1, (value - 1000) / 3000));
+    }
+
+    return 1 - value;
+}
+
+function tierFor(dqs) {
+    if (dqs === null) {
+        return null;
+    }
+
+    const tiers = [
+        [95, 'S'],
+        [85, 'A'],
+        [70, 'B'],
+        [55, 'C'],
+    ];
+
+    return tiers.find(([minimum]) => dqs >= minimum)?.[1] ?? 'D';
 }
 
 function assessQuality(measurements) {
@@ -97,18 +128,12 @@ function assessQuality(measurements) {
             };
         }
 
-        const fraction =
-            name === 'ERR'
-                ? Math.min(1, value / 0.2)
-                : name === 'TTC'
-                  ? Math.max(0, Math.min(1, (value - 1000) / 3000))
-                  : 1 - value;
         metrics[name] = {
             status: input.status,
             value,
             ...counts,
             max_penalty: weight,
-            penalty: value === null ? null : weight * fraction,
+            penalty: value === null ? null : weight * penaltyFraction(name, value),
             explanation: input.explanation,
         };
     }
@@ -119,23 +144,11 @@ function assessQuality(measurements) {
     const measuredWeight = known.reduce((sum, metric) => sum + metric.max_penalty, 0);
     const maximum = Math.max(0, 100 - known.reduce((sum, metric) => sum + metric.penalty, 0));
     const dqs = measuredWeight === 100 ? maximum : null;
-    const tier =
-        dqs === null
-            ? null
-            : dqs >= 95
-              ? 'S'
-              : dqs >= 85
-                ? 'A'
-                : dqs >= 70
-                  ? 'B'
-                  : dqs >= 55
-                    ? 'C'
-                    : 'D';
 
     return {
         scoring_version: 'dqs-v1',
         dqs,
-        tier,
+        tier: tierFor(dqs),
         measured_weight: measuredWeight,
         score_range: {min: Math.max(0, maximum - (100 - measuredWeight)), max: maximum},
         metrics,
@@ -205,8 +218,8 @@ export function prepareQuality(data, retrieval, evidenceLimit = 3) {
     }));
 
     const correct = data.facts.filter((row) => row.status === 'CORRECT');
-    const tokenizer = String(result.retrieval?.protocol.tokenizer ?? '').match(
-        /^(cl100k_base|o200k_base)(?:\s|$)/,
+    const tokenizer = /^(cl100k_base|o200k_base)(?:\s|$)/.exec(
+        String(result.retrieval?.protocol.tokenizer ?? ''),
     )?.[1];
     const supported = Boolean(tokenizer && result.retrieval.correct_only_recall['4000']);
     const searchReason =
@@ -285,9 +298,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
             }
 
             const data = loadLedger(positionals[0]);
-            const retrieval = values.retrieval
-                ? JSON.parse(readFileSync(values.retrieval, 'utf8'))
-                : undefined;
+            const retrieval = values.retrieval ? loadJson(values.retrieval) : undefined;
             process.stdout.write(
                 JSON.stringify(
                     prepareQuality(data, retrieval, Number(values['evidence-limit'])),
