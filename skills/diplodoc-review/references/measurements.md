@@ -15,7 +15,8 @@ acronym alone does not justify substituting another convenient measurement.
 | Recall, retrieval completeness | Relevant items returned at the declared cutoff / relevant gold items | Query/task, relevance labels, corpus/version, item granularity, cutoff and retrieval protocol. Full-context input does not measure retrieval Recall. |
 | TTC, retrieval cost in this rubric | Declared search time, tokens, calls or steps required to locate needed information | Search boundary and events; separate successful, failed and censored searches. Declare the unit. **Total run tokens are not TTC.** |
 | EPR, example execution success | Examples meeting the expected outcome / executed eligible examples | Actual executions, environment/version and expected behavior. Also give executed/eligible coverage; a small tested subset does not establish all examples work. |
-| LHR, checked-link health | Valid targets/anchors / checked links | Link inventory and actual resolution/check results for the relevant publication. Also give checked/discovered coverage. Distinguish broken, restricted, redirected and unchecked targets. |
+| LHR-T, technical link health | Valid targets/anchors / technically checked occurrences | Link inventory and actual resolution/check results for the relevant publication. Also give checked/discovered coverage. Distinguish broken, restricted, redirected and unchecked targets. |
+| LHR-S, semantic link relevance | Relevant targets / semantically checked applicable occurrences | Source promise, resolved target and actual content evidence; inaccessible or uninspected targets stay unknown. |
 
 These are operational choices, not retroactively established formulas for the
 research corpus. If a different definition is supplied, preserve it and state
@@ -29,7 +30,31 @@ is not a failed check. Without a closed relevance set, do not report Recall.
 For a rate, give numerator, denominator, unit, source/version, selection scope
 and unknowns. A score over a sampled or model-extracted inventory is conditional
 on that inventory's adequacy. Do not change fact granularity to improve a rate.
-Report facets separately rather than assigning arbitrary weights to one score.
+Keep facets visible alongside a versioned score; its weights are declared policy,
+not empirically validated effect sizes.
+
+## DQS v1
+
+`quality.mjs` applies this declared profile to the audited sample. Rates are
+fractions, and TTC is the median among correct facts found within 4000 BPE tokens.
+
+| Metric | Penalty |
+| --- | --- |
+| FCR | `20 × (1 − FCR)` |
+| ERR | `20 × min(1, ERR / 0.20)` |
+| CCR | `15 × (1 − CCR)` |
+| Correct-only Recall@4000 | `10 × (1 − Recall)` |
+| TTC | `10 × clamp((TTC − 1000) / 3000, 0, 1)` |
+| EPR | `10 × (1 − EPR)` |
+| LHR-T / LHR-S | `5 × (1 − technical)` / `10 × (1 − semantic)` |
+
+`DQS=max(0,100−sum(penalties))`. Tiers use the unrounded value:
+S ≥95, A ≥85, B ≥70, C ≥55, D <55. Unknown, unavailable or inapplicable
+metrics yield no final score/tier; show measured weight and a conservative range.
+Recall and TTC share one inventory, so incomplete retrieval leaves both weights
+uncertain. Preserve numerator/denominator, eligible totals, found/censored costs
+and evidence. Outputs remain self-reported; a small selected sample or a build
+success cannot establish whole-project quality.
 
 ## Keep evaluation layers separate
 

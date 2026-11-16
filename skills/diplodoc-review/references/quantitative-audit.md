@@ -7,8 +7,8 @@ without practical tasks for test agents or new LLM trials. Consult
 differences between candidates.
 
 Prioritize fact correctness, condition coverage and meaningful example checks.
-LHR is the lowest-priority auxiliary metric; existing build diagnostics usually
-suffice to report broken links without a separate numerical link audit.
+Link quality has technical (LHR-T) and semantic (LHR-S) components. Reuse
+build diagnostics and inspect a declared sample of source promises/targets.
 
 ## Procedure
 
@@ -41,9 +41,10 @@ suffice to report broken links without a separate numerical link audit.
    one successful configuration does not establish all precedence rules. Check
    string/numeric limits and CLI/config conflicts when both forms are public.
    Preserve a false universal claim even if a narrower statement is correct.
-5. Calculate FCR/ERR/CCR with `measure.mjs`. If requested, measure search with
+5. Calculate FCR/ERR/CCR and link rates with `measure.mjs`. If requested, measure search with
    `retrieve.mjs`, verify safe examples using the existing product and collect
-   link observations using the existing linter/build. Missing measurements stay N/A.
+   link observations using the existing linter/build and target evidence. Missing
+   measurements stay N/A; `quality.mjs` prepares the versioned DQS profile.
 6. Produce the compact report described below. Explain scope, annotation and
    excluded observations once. A complete ledger is evidence, not a reason to
    duplicate it in prose or paste computation scripts into the main report.
@@ -114,10 +115,16 @@ They print results to stdout. Give `measure.mjs` a JSON object with:
 - Optional `examples`: records with unique `id`, status `PASS`, `FAIL`,
   `NOT_TESTABLE` or `NOT_TESTED`; tested records need `evidence`, exclusions need
   `reason`. Count actual documentation examples, not arbitrary product tests.
-- Optional `links`: occurrence records with unique `id`, status `VALID`,
-  `BROKEN`, `UNCHECKED` or `RESTRICTED`; checked records need `evidence` from the
-  stock checker, exclusions need `reason`. Duplicate hrefs at different source
-  locations remain distinct occurrences.
+- Optional `links`: occurrence records with unique `id`, technical status
+  `VALID`, `BROKEN`, `UNCHECKED` or `RESTRICTED`; checked records need `evidence`
+  from the stock checker, exclusions need `reason`. Repeated hrefs at different
+  locations remain distinct. JSON `LHR` remains a legacy alias for `LHR-T`.
+- Optional link `semantic`: status `RELEVANT`, `IRRELEVANT`, `UNKNOWN` or
+  `NOT_APPLICABLE`. Checked semantic labels require technical `VALID`, `source`,
+  resolved `target`, the source `promise` and `semantic.evidence` describing
+  whether the target fulfills it. Other semantic statuses need `semantic.reason`.
+  Omitted semantic observations remain unknown, not successful. Examples may
+  include `source`; an optional ledger `explanation` supplies the main conclusion.
 
 For example, a fact in the synthetic DocuBox fixture can be represented as:
 
@@ -186,6 +193,8 @@ node /path/to/diplodoc-review/scripts/retrieve.mjs ledger.json \
   --budgets 2000,4000,8000 > retrieval.json
 node /path/to/diplodoc-review/scripts/measure.mjs ledger.json \
   --retrieval retrieval.json --format report > report.md
+node /path/to/diplodoc-review/scripts/quality.mjs ledger.json \
+  --retrieval retrieval.json > quality.json
 ```
 
 Run these in the temporary directory. `measure.mjs` without retrieval evidence
@@ -212,12 +221,21 @@ document line through a shell or inherit unnecessary secrets. Exclude unavailabl
 services, credentials and environments as NOT_TESTABLE. State tested/candidate
 coverage and any difference from the normal product configuration.
 
-For links, reuse existing yfmlint/build diagnostics. Calculate numerical LHR
-only when explicitly requested and a complete checked-occurrence inventory is
-already available. Otherwise report N/A with the available broken-link findings.
-Do not add instrumentation, another linter or exhaustive link/anchor passes
-solely to fill this rate. No diagnostics does not prove a valid denominator;
-a standalone yfmlint call may lack the CLI's file/TOC/anchor indexes.
+For LHR-T, reuse yfmlint/build results with a checked-occurrence denominator;
+no diagnostics alone does not prove link health. For LHR-S, compare each source
+promise with the resolved target's actual content in the same publication.
+A redirect alone is not a defect; technical inaccessibility does not prove
+semantic irrelevance. Report checked/applicable coverage and unknowns. Keep
+unavailable observations N/A instead of adding machinery merely to fill rates.
+
+`quality.mjs` emits common offline JSON: scope/revisions, explanation,
+measurements with raw counts and evidence, and `dqs-v1` assessment. It uses
+correct-only Recall@4000 and censors later/not-found TTC observations at 4000.
+Lexical diagnostics cannot provide BPE costs. Evidence defaults to three
+problem-first excerpts per metric (up to 2000 characters each); use
+`--evidence-limit` to change that limit and retain the full ledger for replay.
+An integration adapter may consume `measurements`/`explanation` and add its own
+project/snapshot envelope. This helper performs no submission or network calls.
 
 ## Compact output
 
