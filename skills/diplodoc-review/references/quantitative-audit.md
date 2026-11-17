@@ -152,6 +152,16 @@ Helpers use Node.js 18.19+ and never mutate/execute inputs. Give `measure.mjs` J
   problem, recommendation}`. IDs are stable; texts must explain the defect and
   concrete correction. The compact JSON retains up to 100 recommendations,
   with nonempty texts up to 2000 characters; preserve further detail in the ledger.
+  Set `row.report.problem` to a concise defect description in the report language;
+  cite the exact input/options/observation, keeping a passing control separate from
+  its failing counterexample. Describe the saved result, not an assertion's label.
+  For existing frozen records, optional `row.report.expected`/`observed` and
+  `audit.report_scope` localize presentation without changing statements, queries,
+  verdicts or the profile. Links use `row.report` for technical evidence and
+  `row.semantic.report.expected`/`observed` for relevance; keep these facets separate.
+  The output retains `canonical_scope` for integrations when display scope differs.
+  Set `audit.report_language: "ru"` for Russian helper
+  messages; the default is `en`. Free-text ledger fields still require localization.
 
 For example, a fact in the synthetic DocuBox fixture can be represented as:
 

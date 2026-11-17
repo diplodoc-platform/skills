@@ -17,6 +17,13 @@ the whole project. Inventory size follows the product and scope; fixed metric
 weights apply to proportions, not the number of findings. Report the score as
 **DSQ**, without a version suffix; display the score with two decimal places.
 
+Use the user's language for every human-readable report field, including scope,
+explanations, evidence descriptions, problems, corrections and blocker reasons.
+For Russian reports set `audit.report_language: "ru"`; helper defaults are English.
+Keep keys, IDs, enum values, paths, exact source quotes, canonical scope and frozen queries
+unchanged. Localize existing evidence through the presentation fields described in
+[quantitative-audit.md](references/quantitative-audit.md), without relabeling units.
+
 ## Choose the audit
 
 Ask once, in the user's language: **Full analysis with all metrics and DSQ/tier

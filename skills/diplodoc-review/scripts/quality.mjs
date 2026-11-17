@@ -33,37 +33,89 @@ function selectEvidence(rows, limit) {
     return [...rows.filter(problem), ...rows.filter((row) => !problem(row))].slice(0, limit);
 }
 
-function evidenceFor(row) {
+function evidenceFor(row, text) {
     if (row.verification) {
         return {
             source: excerpt(row.documentation[0] ?? row.product ?? row.id),
-            expected: excerpt(row.statement),
-            observed: excerpt(`${row.status}: ${row.verification.evidence}`),
+            expected: excerpt(row.report?.expected ?? row.statement),
+            observed: excerpt(
+                row.report?.observed ?? `${row.status}: ${row.verification.evidence}`,
+            ),
         };
     }
 
     return {
         source: excerpt(row.source ?? row.id),
-        expected: ['PASS', 'FAIL'].includes(row.status)
-            ? 'The example produces its documented result.'
-            : 'The target document and anchor are accessible.',
-        observed: excerpt(row.evidence),
+        expected:
+            row.report?.expected ??
+            (['PASS', 'FAIL'].includes(row.status)
+                ? text(
+                      'The example produces its documented result.',
+                      'Пример даёт описанный результат.',
+                  )
+                : text(
+                      'The target document and anchor are accessible.',
+                      'Целевой документ и якорь доступны.',
+                  )),
+        observed: excerpt(row.report?.observed ?? row.evidence),
         ...(row.target ? {target: excerpt(row.target)} : {}),
     };
 }
 
-function rate(name, metric, rows, eligible, evidenceLimit, absentReason, inapplicable = false) {
+function retrievalEvidenceFor(row, cost, text) {
+    let observed = text('No retrieval observation.', 'Поисковое наблюдение отсутствует.');
+
+    if (cost === null || cost > 4000) {
+        observed = text(
+            'Not found within 4000 BPE tokens.',
+            'Факт не найден в пределах 4000 BPE-токенов.',
+        );
+    } else if (cost !== undefined) {
+        observed = text(
+            `Found after ${cost} BPE tokens.`,
+            `Факт найден после ${cost} BPE-токенов.`,
+        );
+    }
+
+    return {
+        source: excerpt(row.documentation[0] ?? row.id),
+        expected: excerpt(
+            text(
+                `Query: ${row.query}; budget: 4000 BPE tokens.`,
+                `Запрос: ${row.query}; бюджет: 4000 BPE-токенов.`,
+            ),
+        ),
+        observed,
+    };
+}
+
+function rate(
+    name,
+    metric,
+    rows,
+    eligible,
+    evidenceLimit,
+    absentReason,
+    text,
+    inapplicable = false,
+) {
     const measured = metric.denominator > 0;
     let status = inapplicable ? 'not_applicable' : 'not_measured';
     let explanation = absentReason;
 
     if (inapplicable) {
-        explanation = `${name}: no applicable items in the declared inventory.`;
+        explanation = text(
+            `${name}: no applicable items in the declared inventory.`,
+            `${name}: в объявленном реестре нет применимых пунктов.`,
+        );
     }
 
     if (measured) {
         status = 'measured';
-        explanation = `${name}: ${metric.numerator}/${metric.denominator}; ${eligible - metric.denominator} unmeasured of ${eligible} inventoried items.`;
+        explanation = text(
+            `${name}: ${metric.numerator}/${metric.denominator}; ${eligible - metric.denominator} unmeasured of ${eligible} inventoried items.`,
+            `${name}: ${metric.numerator}/${metric.denominator}; не проверено ${eligible - metric.denominator} из ${eligible} пунктов реестра.`,
+        );
     }
 
     return {
@@ -72,7 +124,9 @@ function rate(name, metric, rows, eligible, evidenceLimit, absentReason, inappli
         denominator: metric.denominator,
         eligible,
         explanation,
-        evidence: measured ? selectEvidence(rows, evidenceLimit).map(evidenceFor) : [],
+        evidence: measured
+            ? selectEvidence(rows, evidenceLimit).map((row) => evidenceFor(row, text))
+            : [],
     };
 }
 
@@ -209,6 +263,38 @@ function compactText(value) {
     return typeof value === 'string' && /\S/.test(value) && value?.length <= 2000;
 }
 
+function validatePresentation(data) {
+    if (data.audit?.report_scope !== undefined && !compactText(data.audit.report_scope)) {
+        throw new Error(
+            'audit.report_scope requires nonempty presentation text up to 2000 characters.',
+        );
+    }
+
+    for (const row of [...data.facts, ...(data.examples ?? []), ...(data.links ?? [])]) {
+        for (const [presentation, fields] of [
+            [row.report, ['expected', 'observed', 'problem']],
+            [row.semantic?.report, ['expected', 'observed']],
+        ]) {
+            if (presentation === undefined) {
+                continue;
+            }
+
+            if (
+                !presentation ||
+                typeof presentation !== 'object' ||
+                Array.isArray(presentation) ||
+                Object.entries(presentation).some(
+                    ([key, value]) => !fields.includes(key) || !compactText(value),
+                )
+            ) {
+                throw new Error(
+                    'row.report and semantic.report require supported nonempty text fields up to 2000 characters.',
+                );
+            }
+        }
+    }
+}
+
 function recommendationsFor(data) {
     const recommendations = [...(data.recommendations ?? [])];
 
@@ -224,7 +310,8 @@ function recommendationsFor(data) {
                 ...new Set([...(row.documentation ?? []), row.product, row.source].filter(Boolean)),
             ],
             problem: excerpt(
-                `${row.status}: ${row.statement ?? row.promise ?? row.source}. ${row.verification?.evidence ?? row.evidence ?? row.reason ?? ''}`,
+                row.report?.problem ??
+                    `${row.status}: ${row.statement ?? row.promise ?? row.source}. ${row.verification?.evidence ?? row.evidence ?? row.reason ?? ''}`,
             ),
             recommendation: row.recommendation,
         });
@@ -349,6 +436,11 @@ export function prepareQuality(
         throw new Error('evidence-limit must be an integer between 1 and 100');
     }
 
+    validatePresentation(data);
+
+    const reportLanguage = new Intl.Locale(data.audit?.report_language ?? 'en').language;
+    const reportScope = data.audit?.report_scope ?? data.scope;
+    const text = (english, russian) => (reportLanguage === 'ru' ? russian : english);
     const result = summarize(data, retrieval);
     const expected = data.facts.filter((row) => row.expected !== false);
     const verified = expected.filter((row) => row.status !== 'UNKNOWN');
@@ -366,42 +458,56 @@ export function prepareQuality(
     const semanticEligible = links.filter((row) => row.semantic?.status !== 'NOT_APPLICABLE');
     const semantic = links.filter(checkedSemantic);
     const makeRate = (name, rows, eligible, reason, inapplicable = false) =>
-        rate(name, result.metrics[name], rows, eligible, evidenceLimit, reason, inapplicable);
+        rate(name, result.metrics[name], rows, eligible, evidenceLimit, reason, text, inapplicable);
     const measurements = {
-        FCR: makeRate('FCR', verified, expected.length, 'No verified required facts.'),
+        FCR: makeRate(
+            'FCR',
+            verified,
+            expected.length,
+            text('No verified required facts.', 'Необходимые факты не проверены.'),
+        ),
         ERR: makeRate(
             'ERR',
             documented,
             claims.length,
-            'No verified documented claims.',
+            text('No verified documented claims.', 'Утверждения документации не проверены.'),
             noApplicableFacts(data.facts, claims),
         ),
         CCR: makeRate(
             'CCR',
             verified.filter((row) => row.condition),
             conditions.length,
-            'No verified applicable conditions.',
+            text('No verified applicable conditions.', 'Применимые условия не проверены.'),
             noApplicableFacts(data.facts, conditions),
         ),
         EPR: makeRate(
             'EPR',
             tested,
             examples.length,
-            'Examples were not executed or no inventory was supplied.',
+            text(
+                'Examples were not executed or no inventory was supplied.',
+                'Примеры не проверены либо их реестр не задан.',
+            ),
             Array.isArray(data.examples) && examples.length === 0,
         ),
         'LHR-T': makeRate(
             'LHR-T',
             technical,
             links.length,
-            'Links were not technically checked or no inventory was supplied.',
+            text(
+                'Links were not technically checked or no inventory was supplied.',
+                'Ссылки не проверены технически либо их реестр не задан.',
+            ),
             Array.isArray(data.links) && links.length === 0,
         ),
         'LHR-S': makeRate(
             'LHR-S',
             semantic,
             semanticEligible.length,
-            'Source promises and target relevance were not checked.',
+            text(
+                'Source promises and target relevance were not checked.',
+                'Соответствие целевых страниц обещаниям ссылок не проверено.',
+            ),
             Array.isArray(data.links) && semanticEligible.length === 0,
         ),
     };
@@ -409,8 +515,8 @@ export function prepareQuality(
     measurements['LHR-S'].evidence = selectEvidence(semantic, evidenceLimit).map((row) => ({
         source: excerpt(row.source),
         target: excerpt(row.target),
-        expected: excerpt(row.promise),
-        observed: excerpt(row.semantic.evidence),
+        expected: excerpt(row.semantic.report?.expected ?? row.promise),
+        observed: excerpt(row.semantic.report?.observed ?? row.semantic.evidence),
     }));
 
     const correct = data.facts.filter((row) => row.status === 'CORRECT');
@@ -420,8 +526,10 @@ export function prepareQuality(
         String(result.retrieval?.protocol.tokenizer ?? ''),
     )?.[1];
     const supported = Boolean(tokenizer && result.retrieval.correct_only_recall['4000']);
-    const searchReason =
-        'Correct-only retrieval at 4000 BPE tokens was not measured; run retrieve.mjs with --budgets 4000 and a supported tokenizer.';
+    const searchReason = text(
+        'Correct-only retrieval at 4000 BPE tokens was not measured; run retrieve.mjs with --budgets 4000 and a supported tokenizer.',
+        'Поиск корректных фактов в пределах 4000 BPE-токенов не измерен; запустите retrieve.mjs с --budgets 4000 и поддерживаемым токенизатором.',
+    );
     const costs = new Map((retrieval?.results ?? []).map((row) => [row.id, row.ttc]));
     const samples = supported
         ? correct.map((row) => ({
@@ -444,20 +552,32 @@ export function prepareQuality(
         retrievalEligible,
         evidenceLimit,
         searchReason,
+        text,
         supported && retrievalEligible === 0,
     );
+
+    const retrievalEvidence = (row) => retrievalEvidenceFor(row, costs.get(row.id), text);
+
+    measurements['Recall@4000'].evidence = supported
+        ? correct.slice(0, evidenceLimit).map(retrievalEvidence)
+        : [];
 
     let costStatus = found ? 'measured' : 'not_measured';
     let costExplanation = searchReason;
 
     if (supported) {
-        costExplanation = `${found}/${correct.length} verified correct facts found within 4000 tokens; ${retrievalEligible - correct.length} unverified facts may change the eligible population. Misses remain censored.`;
+        costExplanation = text(
+            `${found}/${correct.length} verified correct facts found within 4000 tokens; ${retrievalEligible - correct.length} unverified facts may change the eligible population. Misses remain censored.`,
+            `Найдено ${found}/${correct.length} подтверждённых корректных фактов в пределах 4000 токенов; ещё ${retrievalEligible - correct.length} непроверенных фактов могут изменить применимую совокупность. Ненайденные факты учитываются как цензурированные наблюдения.`,
+        );
     }
 
     if (supported && retrievalEligible === 0) {
         costStatus = 'not_applicable';
-        costExplanation =
-            'Completed retrieval has no correct or unverified facts eligible for correct-only TTC.';
+        costExplanation = text(
+            'Completed retrieval has no correct or unverified facts eligible for correct-only TTC.',
+            'Поиск завершён: корректных или непроверенных фактов, применимых к TTC, нет.',
+        );
     }
 
     measurements.TTC = {
@@ -469,21 +589,26 @@ export function prepareQuality(
             ? correct
                   .filter((row) => costs.get(row.id) !== null && costs.get(row.id) <= 4000)
                   .slice(0, evidenceLimit)
-                  .map(evidenceFor)
+                  .map(retrievalEvidence)
             : [],
     };
 
     return {
         schema_version: 1,
+        report_language: reportLanguage,
         verification_status: 'unverified',
-        scope: data.scope,
+        scope: reportScope,
+        canonical_scope: data.scope,
         revisions: data.revisions ?? {},
         ledger_sha256: result.ledger_sha256,
         retrieval_protocol: result.retrieval?.protocol ?? null,
         profile: buildReproducibility(data, measurements, result.retrieval?.protocol ?? null),
         explanation: excerpt(
             data.explanation ??
-                `${data.scope}. Facts: ${result.counts.CORRECT} correct, ${result.counts.CONTRADICTED} contradicted, ${result.counts.MISSING} missing, ${result.counts.AMBIGUOUS} ambiguous, ${result.counts.UNKNOWN} unknown.`,
+                text(
+                    `${reportScope}. Facts: ${result.counts.CORRECT} correct, ${result.counts.CONTRADICTED} contradicted, ${result.counts.MISSING} missing, ${result.counts.AMBIGUOUS} ambiguous, ${result.counts.UNKNOWN} unknown.`,
+                    `${reportScope}. Факты: корректных — ${result.counts.CORRECT}, с противоречиями — ${result.counts.CONTRADICTED}, пропущенных — ${result.counts.MISSING}, неоднозначных — ${result.counts.AMBIGUOUS}, непроверенных — ${result.counts.UNKNOWN}.`,
+                ),
         ),
         measurements,
         recommendations: recommendationsFor(data),
