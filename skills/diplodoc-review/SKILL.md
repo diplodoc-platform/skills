@@ -32,6 +32,13 @@ Wait for the choice when interaction is available; otherwise use full and state
 that default. Short mode gives prioritized qualitative findings without DSQ.
 Report length alone does not select short mode.
 
+In either mode, look for `doc-review.yaml` in the documentation root. If present
+for the same scope, use its source locations and checks to recheck known findings
+first. A request limited to rechecking known findings needs only those checks
+and their outcomes. When the file is absent, proceed with any other audit work
+the user requested. See [Known findings](references/reproducibility.md#known-findings)
+for the format and update rules.
+
 ## Full quantitative audit
 
 If bundled `references/integration.md` exists, read it before measuring and
@@ -59,15 +66,17 @@ comparing results; no other reference is required for routine measurement.
    Use `scripts/links.mjs` with built pages for the link denominator, reuse stock
    diagnostics and compare source promises with target content for LHR-S.
    Missing queries or inventories are preparation work, not blockers.
-4. **Check completion.** Run `scripts/quality.mjs` for JSON, one DSQ/tier and
-   per-metric completion. Finish every `not_run`/`partial` check or record a
-   concrete constraint with evidence in `audit.blockers`. Exit 3 means unfinished
-   work; a score does not waive remaining checks. Unknown applicable items get
-   maximum penalties; genuinely absent content types get none. Missing required
-   facts remain defects. Preserve the baseline; update only affected checks.
+4. **Check completion.** Run `scripts/quality.mjs` for JSON and per-metric
+   completion. DSQ and tier require measured FCR. A report with unmeasured FCR
+   retains measurements, findings and blockers with `dqs: null` and `tier: null`.
+   Finish every `not_run`/`partial` check or record a concrete constraint with
+   evidence in `audit.blockers`. Exit 3 means unfinished work. Unknown applicable
+   items get maximum penalties. Use an empty example or link inventory only
+   after checking that the corpus contains no applicable items. Missing required
+   facts remain defects. Preserve the baseline and update only affected checks.
    Recalibration is explicit and explained, never a workaround for a guard error.
 5. **Report compactly.** Give fractions, checked/eligible counts, scope, meaningful
-   findings, concrete DSQ/tier and structured corrective recommendations.
+   findings, DSQ/tier when available, and structured corrective recommendations.
    Distinguish unperformed checks,
    genuine blockers and inapplicable metrics. Execute helpers without reading
    their source unless debugging; retain the ledger for replay.

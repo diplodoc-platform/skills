@@ -242,13 +242,16 @@ function assessQuality(measurements) {
                 metric.status === 'not_applicable' || (metric.eligible > 0 && metric.unknown === 0),
         )
         .reduce((sum, metric) => sum + metric.max_penalty, 0);
-    const dqs = Math.max(0, 100 - values.reduce((sum, metric) => sum + metric.penalty, 0));
+    const dqs =
+        metrics.FCR.status === 'measured'
+            ? Math.max(0, 100 - values.reduce((sum, metric) => sum + metric.penalty, 0))
+            : null;
 
     return {
         scoring_version: 'dqs-v2',
         unknown_policy: 'maximum_penalty',
-        dqs: roundScore(dqs),
-        tier: tierFor(dqs),
+        dqs: dqs === null ? null : roundScore(dqs),
+        tier: dqs === null ? null : tierFor(dqs),
         measured_weight: measuredWeight,
         complete_weight: completeWeight,
         metrics,

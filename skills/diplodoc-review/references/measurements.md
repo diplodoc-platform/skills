@@ -70,8 +70,10 @@ retrieval with no correct or unverified facts makes Recall/TTC inapplicable.
 `measured_weight` counts facets with observed values; `complete_weight` counts
 facets whose applicable inventory has been checked, including N/A. Always give
 `dqs` (DSQ) and `tier` in full mode, alongside per-metric `completion` and
-checked/eligible counts. A conservative penalty is policy, not a claim that an
-unverified item is defective. Attempt every applicable check before accepting
+checked/eligible counts. When FCR has no checked required facts, return null for
+both score and tier and retain measurements and findings. Measured FCR with zero
+correct facts still receives a score. A conservative penalty describes the
+treatment of uncertainty. Attempt every applicable check before accepting
 a blocker. Historical interval scores use a different policy; do not compare them directly.
 Preserve raw counts, found/censored costs and evidence. Outputs remain
 self-reported and conditional on the frozen inventory and annotation accuracy.

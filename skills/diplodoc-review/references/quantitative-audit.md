@@ -295,10 +295,11 @@ unavailable observations unknown; use N/A only when there is no applicable
 information promise. Do not invent observations merely to fill rates.
 
 `quality.mjs` emits scope/revisions, raw measurements/evidence, recommendations,
-profile hashes and one DSQ assessment. Recall is correct-only; TTC censors
-misses at 4000. Lexical diagnostics cannot provide BPE costs. Evidence defaults
-to three problem-first excerpts per metric, up to 2000 characters each; adjust
-with `--evidence-limit` and retain the full ledger. Integration adapters consume
+profile hashes and one assessment. Unmeasured FCR leaves DSQ and tier null.
+Recall is correct-only and TTC censors misses at 4000. Lexical diagnostics
+cannot provide BPE costs. Evidence defaults to three problem-first excerpts
+per metric, up to 2000 characters each. Adjust with `--evidence-limit` and retain
+the full ledger. Integration adapters consume
 `measurements`/`explanation`/`recommendations` and `profile.inventory_hash`.
 The helper makes no network calls. Valid inputs emit JSON even when unfinished:
 exit 3 means unfinished checks, 0 completed/explicitly blocked, 2 invalid input.
@@ -307,7 +308,7 @@ a concrete conservative score does not make a blocked audit complete.
 
 ## Compact output
 
-Give a scoped conclusion, metric table, concrete DSQ/tier, up to five prioritized
-problems with sources/corrections, and protocol/limitations. Include fractions,
+Give a scoped conclusion, metric table, DSQ/tier when available, up to five
+prioritized problems with sources/corrections, and protocol/limitations. Include fractions,
 N/A reasons, found/censored TTC and checked/eligible coverage. Retain full
 evidence in artifacts or the replay appendix; reference helper versions/commands.

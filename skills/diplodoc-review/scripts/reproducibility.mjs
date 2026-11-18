@@ -320,7 +320,8 @@ export function checkBaseline(result, baseline) {
     }
 
     requireValue(
-        previous.measurement_hash !== current.measurement_hash ||
+        result.assessment.dqs === null ||
+            previous.measurement_hash !== current.measurement_hash ||
             (roundScore(baseline.assessment.dqs) === roundScore(result.assessment.dqs) &&
                 baseline.assessment.tier === result.assessment.tier),
         'Identical measurements changed their score; declare a new scoring policy before acceptance.',
