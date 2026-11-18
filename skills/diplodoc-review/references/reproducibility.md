@@ -34,6 +34,57 @@ The helper validates structure and consistency; it does not prove semantic truth
 If new evidence contradicts an accepted verdict on unchanged inputs, preserve
 the old artifact and explicitly recalibrate with the correction and its evidence.
 
+## Known findings
+
+At the root of the documentation being audited, look for the optional
+`doc-review.yaml`. Use it in both review modes. Read the matching scope first
+and recheck the saved source locations and expected behavior before searching
+for the same problem again. A missing file, another scope or an unsupported
+schema leaves the regular audit available. Preserve any file you cannot use.
+
+Use this structure with stable finding IDs and current evidence:
+
+```yaml
+schema_version: 1
+scope:
+  product: Example CLI
+  interface: Build settings
+  lang: ru
+  audience: human
+findings:
+  - id: build-default-format
+    status: open
+    documentation:
+      - build/settings.md#format
+    product:
+      - src/build/defaults.ts:20
+    check: Compare the documented default with a build without --output-format.
+    expected: HTML output.
+    observed: The documentation says Markdown is the default.
+    checked_against:
+      documentation: docs-revision
+      product: cli-revision
+```
+
+- `open` means current evidence confirms the defect. `resolved` requires
+  current evidence that the defect is gone. Use `unverified` if the current
+  source or behavior cannot be established. If a location moved, check the
+  relevant topic before judging the finding.
+- Keep locations relative to their respective roots. Use the document section
+  or a line reference. Either source array may be empty where appropriate.
+  Record actual revision identifiers in `checked_against`, or null when unknown.
+  Treat the saved check as a description to validate against current sources.
+- When updating the matching file, keep existing IDs, replace rechecked rows
+  with current observations, and add newly confirmed problems. Retain resolved
+  rows so later runs can recognize regressions. Leave unchecked rows as they were.
+  Continue any discovery and measurement required by the requested audit.
+- Verify that the publication pipeline excludes this file, especially if it
+  copies raw sources or additional assets. When exclusion is established and
+  local writes are allowed, update the matching file at the end of the audit
+  or create it if there are confirmed findings. Keep the file outside the
+  audited corpus and source manifest. The measurement ledger and its evidence
+  rules govern measured verdicts.
+
 ## Source manifests and dependencies
 
 Create a fixed `sources.json` from the audited corpus and relevant product
