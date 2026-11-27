@@ -43,6 +43,23 @@ the file and then mention the problem. Details in rule 5 below and
 | `references/extras.md` | tabs variants (radio/dropdown/accordion), media, video, code fence options, inline extras, what is NOT enabled by default |
 | `references/diagrams.md` | mermaid: type catalog, node/edge syntax, Diplodoc-specific caveats |
 
+## Article modification date in Diplodoc
+
+To set the displayed modification date manually, add a quoted `YYYY-MM-DD`
+value to the article's frontmatter (the YAML block at the top of the file):
+
+```yaml
+---
+updatedAt: '2026-11-12'
+---
+```
+
+The short form displays the same Moscow calendar day for every reader. No
+time is needed. A valid manual date takes precedence over the commit date
+even with `vcs` and `mtimes` enabled, and also works when they are disabled.
+If the article already has frontmatter, add the field to that block.
+This is a Diplodoc feature, not a general Markdown rule.
+
 ## Text semantics you must know before generating
 
 1. **A single newline renders as a line break** (`breaks: true` is the
